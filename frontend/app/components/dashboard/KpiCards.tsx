@@ -11,15 +11,15 @@ interface KpiCardProps {
 
 const KpiCard = ({ title, value, icon: Icon, trend, trendUp }: KpiCardProps) => (
   <div className="kpi-card">
-    <div className="flex items-center justify-between mb-3">
-      <span className="text-sm text-muted-foreground font-medium">{title}</span>
-      <div className="w-9 h-9 rounded-lg bg-primary/8 flex items-center justify-center">
-        <Icon className="w-4 h-4 text-primary" />
+    <div className="flex items-start justify-between mb-3">
+      <span className="text-sm text-muted-foreground font-medium leading-snug">{title}</span>
+      <div className="w-9 h-9 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0 ml-2">
+        <Icon className="w-4 h-4 text-blue-500" strokeWidth={1.5} />
       </div>
     </div>
-    <div className="text-2xl font-bold text-foreground">{value}</div>
+    <div className="text-3xl font-bold text-foreground">{value}</div>
     {trend && (
-      <p className={cn("text-xs mt-1 font-medium", trendUp ? "text-success" : "text-muted-foreground")}>
+      <p className={cn("text-xs mt-1.5 font-medium", trendUp ? "text-emerald-600" : "text-muted-foreground")}>
         {trend}
       </p>
     )}

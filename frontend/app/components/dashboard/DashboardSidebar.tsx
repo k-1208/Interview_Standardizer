@@ -9,7 +9,6 @@ import {
   FileDown,
   Settings,
   ChevronLeft,
-  Shield,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -39,21 +38,43 @@ const DashboardSidebar = ({ open, onToggle }: DashboardSidebarProps) => {
   return (
     <aside
       className={cn(
-        "sidebar-gradient text-sidebar-fg flex-shrink-0 flex flex-col transition-all duration-300 ease-in-out border-r border-sidebar-border relative",
+        "flex-shrink-0 flex flex-col transition-all duration-300 ease-in-out relative sidebar-gradient",
+        "text-sidebar-fg",
         open ? "w-60" : "w-0 lg:w-16",
         !open && "overflow-hidden"
       )}
     >
       {/* Header */}
-      <div className={cn("flex items-center gap-3 p-4 border-b border-sidebar-border", !open && "lg:justify-center")}>
-        <div className="w-8 h-8 rounded-lg bg-accent flex items-center justify-center flex-shrink-0">
-          <Shield className="w-4 h-4 text-accent-foreground" />
+      <div
+        className={cn(
+          "flex items-center h-14 px-4 border-b border-sidebar-border",
+          open ? "justify-between" : "lg:justify-center"
+        )}
+      >
+        <div className="flex items-center gap-3 min-w-0">
+          {/* Amber logo icon */}
+          <div className="w-8 h-8 rounded-lg bg-accent flex items-center justify-center flex-shrink-0">
+            <span className="text-white font-bold text-sm">IQ</span>
+          </div>
+          {open && (
+            <span className="text-sm font-bold text-sidebar-fg-active whitespace-nowrap tracking-wide">
+              InterviewIQ
+            </span>
+          )}
         </div>
-        {open && <span className="text-sm font-semibold text-sidebar-fg-active whitespace-nowrap">InterviewIQ</span>}
+        {/* Collapse toggle inline */}
+        {open && (
+          <button
+            onClick={onToggle}
+            className="lg:flex hidden w-6 h-6 rounded-full bg-sidebar-border/60 items-center justify-center hover:bg-sidebar-border transition-colors flex-shrink-0"
+          >
+            <ChevronLeft className="w-3.5 h-3.5 text-sidebar-fg" />
+          </button>
+        )}
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 py-4 px-2 space-y-1">
+      <nav className="flex-1 py-3 px-2 space-y-0.5">
         {navItems.map((item) => {
           const active = isActive(item.path);
           return (
@@ -61,27 +82,32 @@ const DashboardSidebar = ({ open, onToggle }: DashboardSidebarProps) => {
               key={item.label}
               onClick={() => router.push(item.path)}
               className={cn(
-                "w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-sm transition-all duration-150",
+                "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-150",
                 active
                   ? "bg-sidebar-accent/15 text-sidebar-fg-active font-medium"
-                  : "text-sidebar-muted hover:text-sidebar-fg hover:bg-sidebar-border/40",
+                  : "text-sidebar-fg hover:text-sidebar-fg hover:bg-sidebar-border/40",
                 !open && "lg:justify-center lg:px-0"
               )}
             >
-              <item.icon className="w-4 h-4 flex-shrink-0" />
+              <item.icon
+                className={cn("w-4 h-4 flex-shrink-0", active ? "text-sidebar-accent" : "text-sidebar-muted")}
+                strokeWidth={1.5}
+              />
               {open && <span className="whitespace-nowrap">{item.label}</span>}
             </button>
           );
         })}
       </nav>
 
-      {/* Toggle (desktop only) */}
-      <button
-        onClick={onToggle}
-        className="hidden lg:flex absolute -right-3 top-6 w-6 h-6 rounded-full bg-card border border-border items-center justify-center shadow-soft hover:shadow-card transition-shadow"
-      >
-        <ChevronLeft className={cn("w-3 h-3 text-foreground transition-transform duration-300", !open && "rotate-180")} />
-      </button>
+      {/* Expand button when collapsed */}
+      {!open && (
+        <button
+          onClick={onToggle}
+          className="hidden lg:flex mx-auto mb-4 w-6 h-6 rounded-full bg-sidebar-border/60 items-center justify-center hover:bg-sidebar-border transition-colors"
+        >
+          <ChevronLeft className="w-3.5 h-3.5 text-sidebar-fg rotate-180" />
+        </button>
+      )}
     </aside>
   );
 };

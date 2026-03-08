@@ -21,15 +21,15 @@ export interface CandidateProfile {
 export const mockCandidates: CandidateProfile[] = [
   {
     id: "C001",
-    name: "Arjun Mehta",
+    name: "Arjun Patel",
     board: "CBSE",
-    grade10: "92.5",
-    grade12: "94.2",
+    grade10: "91.8",
+    grade12: "93.2",
     gpa: "3.9",
     degree: "B.Tech Computer Science",
-    email: "arjun.mehta@email.com",
+    email: "arjun.patel@email.com",
     status: "reviewed",
-    dateAdded: "2026-03-01",
+    dateAdded: "2026-01-28",
     activities: ["Robotics Club President", "School Cricket Team Captain", "Math Olympiad Participant"],
     achievements: ["National Robotics Competition – 2nd Place", "School Merit Scholarship 2025"],
     essays: [
@@ -44,13 +44,13 @@ export const mockCandidates: CandidateProfile[] = [
     id: "C002",
     name: "Priya Sharma",
     board: "ICSE",
-    grade10: "89.0",
-    grade12: "91.5",
+    grade10: "93.1",
+    grade12: "95.8",
     gpa: "3.7",
     degree: "B.Sc. Physics",
     email: "priya.sharma@email.com",
-    status: "interviewing",
-    dateAdded: "2026-03-02",
+    status: "completed",
+    dateAdded: "2026-02-01",
     activities: ["Debate Team", "Community Tutoring", "Physics Society"],
     achievements: ["State Debate Champion 2025", "INSPIRE Award Finalist"],
     essays: [
@@ -63,15 +63,15 @@ export const mockCandidates: CandidateProfile[] = [
   },
   {
     id: "C003",
-    name: "Rohan Kumar",
-    board: "State",
-    grade10: "85.3",
-    grade12: "88.7",
+    name: "Rahul Krishnan",
+    board: "State Board",
+    grade10: "88.1",
+    grade12: "91.4",
     gpa: "3.5",
     degree: "B.E. Electronics",
-    email: "rohan.kumar@email.com",
+    email: "rahul.krishnan@email.com",
     status: "pending",
-    dateAdded: "2026-03-03",
+    dateAdded: "2026-02-03",
     activities: ["Electronics Tinkering Club", "NSS Volunteer", "Football Team"],
     achievements: ["District Science Fair Winner", "NSS Best Volunteer Award"],
     essays: [
@@ -84,15 +84,15 @@ export const mockCandidates: CandidateProfile[] = [
   },
   {
     id: "C004",
-    name: "Ananya Singh",
+    name: "Ananya Desai",
     board: "CBSE",
     grade10: "95.0",
     grade12: "96.5",
     gpa: "4.0",
     degree: "B.Tech AI & Data Science",
-    email: "ananya.singh@email.com",
-    status: "completed",
-    dateAdded: "2026-03-04",
+    email: "ananya.desai@email.com",
+    status: "interviewing",
+    dateAdded: "2026-01-15",
     activities: ["AI Research Intern at IIT Delhi", "Women in STEM Club Founder", "Dance Society"],
     achievements: ["Top 1% CBSE Board", "Google AI for Social Good Finalist", "Young Innovator Award"],
     essays: [
@@ -105,15 +105,15 @@ export const mockCandidates: CandidateProfile[] = [
   },
   {
     id: "C005",
-    name: "Vikram Patel",
+    name: "Vikram Mehta",
     board: "ICSE",
-    grade10: "87.2",
-    grade12: "90.0",
+    grade10: "85.8",
+    grade12: "89.3",
     gpa: "3.6",
     degree: "B.Tech Mechanical",
-    email: "vikram.patel@email.com",
-    status: "reviewed",
-    dateAdded: "2026-03-05",
+    email: "vikram.mehta@email.com",
+    status: "pending",
+    dateAdded: "2026-02-04",
     activities: ["Formula Student Team", "Photography Club", "Entrepreneurship Cell"],
     achievements: ["Formula Student India – Top 10 Team", "State Level Moot Court Participant"],
     essays: [
@@ -127,10 +127,10 @@ export const mockCandidates: CandidateProfile[] = [
 ];
 
 export const statusConfig = {
-  pending: { label: "Pending Review", className: "bg-yellow-100 text-yellow-800" },
-  reviewed: { label: "Reviewed", className: "bg-blue-100 text-blue-800" },
-  interviewing: { label: "Interviewing", className: "bg-purple-100 text-purple-800" },
-  completed: { label: "Completed", className: "bg-green-100 text-green-800" },
+  pending: { label: "Pending Review", className: "bg-amber-100 text-amber-800" },
+  reviewed: { label: "Interview Ready", className: "bg-green-100 text-green-800" },
+  interviewing: { label: "Interviewed", className: "bg-purple-100 text-purple-800" },
+  completed: { label: "Parsed", className: "bg-blue-100 text-blue-800" },
 };
 
 export interface InterviewQuestion {
@@ -210,8 +210,8 @@ export interface ParsedField {
 }
 
 export const mockParsedFields: ParsedField[] = [
-  { field: "Full Name", value: "Arjun Mehta", confidence: "high", source: "Page 1, Header" },
-  { field: "Email Address", value: "arjun.mehta@email.com", confidence: "high", source: "Page 1, Contact" },
+  { field: "Full Name", value: "Arjun Patel", confidence: "high", source: "Page 1, Header" },
+  { field: "Email Address", value: "arjun.patel@email.com", confidence: "high", source: "Page 1, Contact" },
   { field: "Phone Number", value: "+91 98765 43210", confidence: "medium", source: "Page 1, Contact" },
   { field: "Date of Birth", value: "15 August 2007", confidence: "high", source: "Page 1, Personal Details" },
   { field: "Grade 12 %", value: "94.2", confidence: "high", source: "Page 2, Academics" },
@@ -219,8 +219,8 @@ export const mockParsedFields: ParsedField[] = [
 ];
 
 export const mockCandidateProfile = {
-  name: "Arjun Mehta",
-  email: "arjun.mehta@email.com",
+  name: "Arjun Patel",
+  email: "arjun.patel@email.com",
   phone: "+91 98765 43210",
   board: "CBSE",
   grade10: "92.5",

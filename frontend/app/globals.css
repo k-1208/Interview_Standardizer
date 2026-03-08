@@ -23,12 +23,13 @@
   --radius: 0.5rem;
   
   /* Sidebar */
-  --sidebar-bg: #1e293b;
-  --sidebar-fg: #cbd5e1;
-  --sidebar-fg-active: #f1f5f9;
-  --sidebar-muted: #94a3b8;
-  --sidebar-border: #334155;
-  --sidebar-accent: #3b82f6;
+  --sidebar-bg: hsl(230 30% 14%);
+  --sidebar-fg: hsl(220 20% 80%);
+  --sidebar-fg-active: hsl(0 0% 100%);
+  --sidebar-muted: hsl(230 15% 40%);
+  --sidebar-border: hsl(230 20% 22%);
+  --sidebar-accent-bg: hsl(234 62% 50%);
+  --accent: hsl(38 92% 55%);
   
   /* Shadows */
   --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
@@ -65,7 +66,8 @@
   --color-sidebar-fg-active: var(--sidebar-fg-active);
   --color-sidebar-muted: var(--sidebar-muted);
   --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent: var(--sidebar-accent-bg);
+  --color-accent: var(--accent);
   --color-success: #10b981;
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
@@ -103,7 +105,7 @@ body {
 
 /* Custom utility classes */
 .login-gradient {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #3730a3 0%, #4c1d95 60%, #5b21b6 100%);
   color: white;
 }
 
@@ -115,7 +117,7 @@ body {
 }
 
 .sidebar-gradient {
-  background: var(--sidebar-bg);
+  background: linear-gradient(180deg, hsl(230 30% 14%) 0%, hsl(230 35% 10%) 100%);
 }
 
 .kpi-card {

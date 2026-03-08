@@ -35,17 +35,17 @@ export default function LoginPage() {
 
         <div className="relative z-10 max-w-md">
           <div className="flex items-center gap-3 mb-8">
-            <div className="w-10 h-10 rounded-lg bg-accent flex items-center justify-center">
-              <Shield className="w-5 h-5 text-accent-foreground" />
+            <div className="w-10 h-10 rounded-xl bg-amber-400 flex items-center justify-center shadow-lg">
+              <Shield className="w-5 h-5 text-amber-900" />
             </div>
-            <h1 className="text-2xl font-bold text-gradient">InterviewIQ</h1>
+            <h1 className="text-2xl font-bold text-white">InterviewIQ</h1>
           </div>
-          <h2 className="text-4xl font-bold text-gradient leading-tight mb-6">
+          <h2 className="text-4xl font-bold text-white leading-tight mb-6">
             Standardise your interviews.
             <br />
             Hire with confidence.
           </h2>
-          <p className="text-primary-foreground/70 text-lg leading-relaxed">
+          <p className="text-white/65 text-lg leading-relaxed">
             Upload candidate profiles, get AI-driven question sets, and ensure
             every interview is fair, consistent, and insightful.
           </p>
@@ -53,7 +53,7 @@ export default function LoginPage() {
       </section>
 
       {/* Right Panel — Form */}
-      <section className="flex-1 flex items-center justify-center p-6 sm:p-12 bg-background">
+      <section className="flex-1 flex items-center justify-center p-6 sm:p-12 bg-slate-50">
         <div className="w-full max-w-sm slide-up">
           {/* Mobile logo */}
           <div className="flex items-center gap-3 mb-10 lg:hidden">
@@ -64,13 +64,13 @@ export default function LoginPage() {
           </div>
 
           <header className="mb-8">
-            <h2 className="text-2xl font-semibold text-foreground">Welcome back</h2>
-            <p className="text-muted-foreground mt-1">Sign in to your account to continue</p>
+            <h2 className="text-3xl font-bold text-gray-900">Welcome back</h2>
+            <p className="text-gray-500 mt-1">Sign in to your account to continue</p>
           </header>
 
           <form onSubmit={handleLogin} className="space-y-5">
             <div className="space-y-2">
-              <Label htmlFor="email" className="text-sm font-medium text-foreground">
+              <Label htmlFor="email" className="text-sm font-medium text-gray-700">
                 Email address
               </Label>
               <Input
@@ -79,17 +79,17 @@ export default function LoginPage() {
                 placeholder="you@company.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="h-11 bg-card border-border focus:border-primary transition-colors"
+                className="h-12 bg-white border-gray-300 focus:border-indigo-500 rounded-lg shadow-sm"
                 required
               />
             </div>
 
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <Label htmlFor="password" className="text-sm font-medium text-foreground">
+                <Label htmlFor="password" className="text-sm font-medium text-gray-700">
                   Password
                 </Label>
-                <button type="button" className="text-xs text-primary hover:text-primary/80 transition-colors">
+                <button type="button" className="text-xs text-indigo-600 hover:text-indigo-700 font-medium transition-colors">
                   Forgot password?
                 </button>
               </div>
@@ -100,7 +100,7 @@ export default function LoginPage() {
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="h-11 bg-card border-border focus:border-primary transition-colors pr-10"
+                  className="h-12 bg-white border-gray-300 focus:border-indigo-500 rounded-lg shadow-sm pr-10"
                   required
                 />
                 <button
@@ -115,7 +115,7 @@ export default function LoginPage() {
 
             <Button
               type="submit"
-              className="w-full h-11 font-medium transition-all duration-200 hover:shadow-glow"
+              className="w-full h-12 font-semibold bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-all duration-200 text-base"
               disabled={isLoading}
             >
               {isLoading ? (
@@ -131,9 +131,9 @@ export default function LoginPage() {
             </Button>
           </form>
 
-          <p className="mt-8 text-center text-sm text-muted-foreground">
+          <p className="mt-8 text-center text-sm text-gray-500">
             Don't have an account?{" "}
-            <button className="text-primary font-medium hover:text-primary/80 transition-colors">
+            <button className="text-indigo-600 font-semibold hover:text-indigo-700 transition-colors">
               Request access
             </button>
           </p>

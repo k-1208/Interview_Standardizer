@@ -4,13 +4,12 @@ import { useRouter } from "next/navigation";
 import KpiCards from "@/components/dashboard/KpiCards";
 import RecentCandidatesTable from "@/components/dashboard/RecentCandidates";
 import { Button } from "@/components/ui/button";
-import { Upload } from "lucide-react";
 
 export default function DashboardHome() {
   const router = useRouter();
 
   return (
-    <div className="max-w-6xl mx-auto space-y-8 fade-in">
+    <div className="space-y-8 fade-in">
       <KpiCards />
 
       <section>
@@ -22,13 +21,6 @@ export default function DashboardHome() {
         </div>
         <RecentCandidatesTable />
       </section>
-
-      <div className="flex justify-center pt-2">
-        <Button onClick={() => router.push("/upload")} className="gap-2">
-          <Upload className="w-4 h-4" />
-          Upload New Candidate PDF
-        </Button>
-      </div>
     </div>
   );
 }
