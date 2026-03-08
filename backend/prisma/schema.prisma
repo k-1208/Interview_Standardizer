@@ -1,9 +1,6 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client"
   output   = "../generated/prisma"
@@ -11,4 +8,196 @@ generator client {
 
 datasource db {
   provider = "mysql"
+}
+
+// ─── Enums ────────────────────────────────────────────────────────────────────
+
+enum CandidateStatus {
+  pending
+  reviewed
+  interviewing
+  completed
+}
+
+enum Confidence {
+  high
+  medium
+  low
+}
+
+enum InterviewStatus {
+  scheduled
+  completed
+  cancelled
+}
+
+enum Difficulty {
+  easy
+  medium
+  hard
+}
+
+enum WorkspaceRole {
+  super_admin
+  admin
+  reviewer
+}
+
+enum InvitationStatus {
+  pending
+  accepted
+  expired
+  cancelled
+}
+
+// ─── Models ───────────────────────────────────────────────────────────────────
+
+model Workspace {
+  id          Int               @id @default(autoincrement())
+  name        String            @db.VarChar(200)
+  slug        String            @unique @db.VarChar(100)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  members           WorkspaceMember[]
+  invitations       Invitation[]
+  candidates        Candidate[]
+
+  @@map("workspaces")
+}
+
+model WorkspaceMember {
+  id          Int           @id @default(autoincrement())
+  role        WorkspaceRole @default(reviewer)
+  joinedAt    DateTime      @default(now())
+  userId      Int
+  workspaceId Int
+
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workspace   Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, workspaceId])
+  @@map("workspace_members")
+}
+
+model Invitation {
+  id          Int              @id @default(autoincrement())
+  email       String           @db.VarChar(150)
+  role        WorkspaceRole    @default(reviewer)
+  token       String           @unique @db.VarChar(255)
+  status      InvitationStatus @default(pending)
+  expiresAt   DateTime
+  workspaceId Int
+  invitedById Int
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  workspace   Workspace        @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  invitedBy   User             @relation(fields: [invitedById], references: [id])
+
+  @@map("invitations")
+}
+
+model User {
+  id                Int               @id @default(autoincrement())
+  name              String            @db.VarChar(100)
+  email             String            @unique @db.VarChar(150)
+  passwordHash      String            @db.VarChar(255)
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  workspaces        WorkspaceMember[]
+  invitationsSent   Invitation[]
+  interviewSessions InterviewSession[]
+
+  @@map("users")
+}
+
+model Candidate {
+  id               String            @id @db.VarChar(20)
+  name             String            @db.VarChar(100)
+  email            String            @unique @db.VarChar(150)
+  board            String            @db.VarChar(50)
+  grade10          String            @db.VarChar(10)
+  grade12          String            @db.VarChar(10)
+  gpa              String            @db.VarChar(10)
+  degree           String            @db.VarChar(150)
+  status           CandidateStatus   @default(pending)
+  summary          String?           @db.Text
+  activities       Json              // string[]
+  achievements     Json              // string[]
+  strengths        Json              // string[]
+  growthAreas      Json              // string[]
+  skills           Json              // string[]
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  workspaceId      Int
+
+  workspace          Workspace           @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  essays             Essay[]
+  parsedFields       ParsedField[]
+  interviewQuestions InterviewQuestion[]
+  interviewSessions  InterviewSession[]
+
+  @@map("candidates")
+}
+
+model Essay {
+  id          Int       @id @default(autoincrement())
+  title       String    @db.VarChar(200)
+  content     String    @db.Text
+  candidateId String    @db.VarChar(20)
+  createdAt   DateTime  @default(now())
+
+  candidate   Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+
+  @@map("essays")
+}
+
+model ParsedField {
+  id          Int        @id @default(autoincrement())
+  field       String     @db.VarChar(100)
+  value       String     @db.VarChar(500)
+  confidence  Confidence
+  source      String     @db.VarChar(200)
+  candidateId String     @db.VarChar(20)
+  createdAt   DateTime   @default(now())
+
+  candidate   Candidate  @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+
+  @@map("parsed_fields")
+}
+
+model InterviewQuestion {
+  id             String     @id @db.VarChar(20)
+  category       String     @db.VarChar(50)
+  difficulty     Difficulty
+  question       String     @db.Text
+  skillEvaluated String     @db.VarChar(200)
+  rationale      String     @db.Text
+  sourceText     String?    @db.Text
+  confidence     Int?
+  tags           Json       // string[]
+  candidateId    String?    @db.VarChar(20)
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  candidate      Candidate? @relation(fields: [candidateId], references: [id], onDelete: SetNull)
+
+  @@map("interview_questions")
+}
+
+model InterviewSession {
+  id            String          @id @db.VarChar(20)
+  version       String          @db.VarChar(100)
+  dateGenerated DateTime        @default(now())
+  questionCount Int
+  status        InterviewStatus @default(scheduled)
+  candidateId   String          @db.VarChar(20)
+  generatedById Int
+
+  candidate     Candidate       @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  generatedBy   User            @relation(fields: [generatedById], references: [id])
+
+  @@map("interview_sessions")
 }
