@@ -1,14 +1,12 @@
-"use client";
-
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Eye, EyeOff, ArrowRight, Shield } from "lucide-react";
 
-export default function LoginPage() {
-  const router = useRouter();
+const Login = () => {
+  const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -20,7 +18,7 @@ export default function LoginPage() {
     // Simulate auth delay
     await new Promise((r) => setTimeout(r, 800));
     setIsLoading(false);
-    router.push("/dashboard");
+    navigate("/dashboard");
   };
 
   return (
@@ -141,4 +139,6 @@ export default function LoginPage() {
       </section>
     </main>
   );
-}
+};
+
+export default Login;
