@@ -1,5 +1,4 @@
-import { Request } from 'express';
-import type { Response } from 'express';
+import type { Request, Response } from 'express';
 import { registerUser, loginUser, getMe } from '../service/auth.service.js';
 
 const COOKIE_OPTIONS = {
@@ -10,18 +9,38 @@ const COOKIE_OPTIONS = {
 };
 
 export async function register(req: Request, res: Response): Promise<void> {
-  const { name, email, password } = req.body;
+  const { name, organizationName, email, password } = req.body;
 
-  if (!name || !email || !password) {
-    res.status(400).json({ success: false, message: 'name, email and password are required' });
+  console.log('[auth/register] Incoming request', {
+    name,
+    organizationName,
+    email,
+    hasPassword: Boolean(password),
+    origin: req.headers.origin,
+  });
+
+  if (!name || !organizationName || !email || !password) {
+    console.log('[auth/register] Validation failed: missing required fields');
+    res.status(400).json({ success: false, message: 'name, organizationName, email and password are required' });
     return;
   }
 
   try {
-    const { user, token } = await registerUser(name, email, password);
+    const startedAt = Date.now();
+    const { user, token } = await registerUser(name, organizationName, email, password);
+    console.log('[auth/register] Registration successful', {
+      userId: user.id,
+      email: user.email,
+      durationMs: Date.now() - startedAt,
+    });
     res.cookie('token', token, COOKIE_OPTIONS);
     res.status(201).json({ success: true, data: { user, token } });
   } catch (err: any) {
+    console.error('[auth/register] Registration failed', {
+      message: err?.message,
+      stack: err?.stack,
+      code: err?.code,
+    });
     const isClientError = err.message === 'Email already in use';
     res.status(isClientError ? 409 : 500).json({ success: false, message: err.message });
   }

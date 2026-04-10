@@ -12,19 +12,33 @@ export interface JwtPayload {
 
 // ─── Register ─────────────────────────────────────────────────────────────────
 
-export async function registerUser(name: string, email: string, password: string) {
+export async function registerUser(
+  name: string,
+  organizationName: string,
+  email: string,
+  password: string
+) {
+  console.log('[auth/registerUser] Checking existing user', { email });
   const existing = await prisma.user.findUnique({ where: { email } });
   if (existing) {
+    console.log('[auth/registerUser] Existing user found', { email });
     throw new Error('Email already in use');
   }
 
+  console.log('[auth/registerUser] Hashing password');
   const passwordHash = await bcrypt.hash(password, 10);
 
   // @ts-ignore — passwordHash will exist after schema update + prisma generate
-  const user = await prisma.user.create({
-    data: { name, email, passwordHash },
-    select: { id: true, name: true, email: true, createdAt: true },
+  console.log('[auth/registerUser] Creating user in database', {
+    email,
+    organizationName,
   });
+  const user = await prisma.user.create({
+    data: { name, organizationName, email, passwordHash },
+    select: { id: true, name: true, organizationName: true, email: true, createdAt: true },
+  });
+
+  console.log('[auth/registerUser] User created', { userId: user.id, email: user.email });
 
   const token = jwt.sign(
     { userId: user.id, email: user.email } satisfies JwtPayload,

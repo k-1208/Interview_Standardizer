@@ -7,7 +7,18 @@ import authRoutes from "./routes/auth.routes.js";
 dotenv.config();
 
 const app = express();
-app.use(cors({ origin: "*", credentials: true }));
+const corsOptions: cors.CorsOptions = {
+  origin: (origin, callback) => {
+    if (!origin) {
+      callback(null, true);
+      return;
+    }
+    callback(null, origin);
+  },
+  credentials: true,
+};
+
+app.use(cors(corsOptions));
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
