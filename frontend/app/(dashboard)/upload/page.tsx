@@ -6,6 +6,7 @@ import { Upload, FileText, Loader2, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
+import { uploadPdf } from "@/api/upload";
 
 type UploadState = "idle" | "file_selected" | "parsing" | "complete";
 
@@ -20,11 +21,16 @@ export default function UploadPage() {
   const [state, setState] = useState<UploadState>("idle");
   const [dragOver, setDragOver] = useState(false);
   const [fileName, setFileName] = useState("");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [progress, setProgress] = useState(0);
   const [currentStep, setCurrentStep] = useState(0);
+  const [errorMessage, setErrorMessage] = useState("");
+  const [candidateId, setCandidateId] = useState("");
 
   const handleFile = (file: File) => {
     if (file && file.type === "application/pdf") {
+      setErrorMessage("");
+      setSelectedFile(file);
       setFileName(file.name);
       setState("file_selected");
     }
@@ -43,9 +49,28 @@ export default function UploadPage() {
   };
 
   const startParsing = async () => {
+    if (!selectedFile) {
+      setErrorMessage("Please select a PDF file first.");
+      return;
+    }
+
+    if (!candidateId.trim()) {
+      setErrorMessage("Please enter candidate ID.");
+      return;
+    }
+
     setState("parsing");
     setProgress(0);
     setCurrentStep(0);
+
+    try {
+      await uploadPdf(selectedFile, candidateId.trim());
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to upload PDF";
+      setErrorMessage(message);
+      setState("file_selected");
+      return;
+    }
 
     for (let i = 0; i <= 100; i += 2) {
       await new Promise((r) => setTimeout(r, 60));
@@ -61,9 +86,11 @@ export default function UploadPage() {
 
   const handleCancel = () => {
     setState("idle");
+    setSelectedFile(null);
     setFileName("");
     setProgress(0);
     setCurrentStep(0);
+    setErrorMessage("");
   };
 
   if (state === "parsing") {
@@ -173,6 +200,20 @@ export default function UploadPage() {
         </label>
       </div>
 
+      <div className="space-y-2">
+        <label htmlFor="candidateId" className="text-sm font-medium text-foreground">
+          Candidate ID
+        </label>
+        <input
+          id="candidateId"
+          type="text"
+          value={candidateId}
+          onChange={(e) => setCandidateId(e.target.value)}
+          placeholder="Enter candidate ID"
+          className="h-11 w-full rounded-lg border border-border bg-white px-3 text-sm text-foreground outline-none focus:border-primary"
+        />
+      </div>
+
       {/* Actions */}
       <div className="flex justify-end gap-3">
         <Button variant="outline" onClick={handleCancel} disabled={state === "idle"}>
@@ -182,6 +223,10 @@ export default function UploadPage() {
           Start Parsing
         </Button>
       </div>
+
+      {errorMessage ? (
+        <p className="text-sm font-medium text-red-600 text-right">{errorMessage}</p>
+      ) : null}
     </div>
   );
 }
