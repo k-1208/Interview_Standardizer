@@ -130,8 +130,12 @@ const Login = () => {
           </form>
 
           <p className="mt-8 text-center text-sm text-muted-foreground">
-            Don't have an account?{" "}
-            <button className="text-primary font-medium hover:text-primary/80 transition-colors">
+            Don&apos;t have an account?{" "}
+            <button
+              type="button"
+              onClick={() => navigate("/register")}
+              className="text-primary font-medium hover:text-primary/80 transition-colors"
+            >
               Request access
             </button>
           </p>
