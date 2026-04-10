@@ -1,4 +1,5 @@
-import { Request, Response } from 'express';
+import { Request } from 'express';
+import type { Response } from 'express';
 import { registerUser, loginUser, getMe } from '../service/auth.service.js';
 
 const COOKIE_OPTIONS = {
@@ -7,8 +8,6 @@ const COOKIE_OPTIONS = {
   sameSite: 'lax' as const,
   maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days in ms
 };
-
-// ─── POST /api/auth/register ──────────────────────────────────────────────────
 
 export async function register(req: Request, res: Response): Promise<void> {
   const { name, email, password } = req.body;
@@ -28,7 +27,6 @@ export async function register(req: Request, res: Response): Promise<void> {
   }
 }
 
-// ─── POST /api/auth/login ─────────────────────────────────────────────────────
 
 export async function login(req: Request, res: Response): Promise<void> {
   const { email, password } = req.body;
@@ -47,14 +45,10 @@ export async function login(req: Request, res: Response): Promise<void> {
   }
 }
 
-// ─── POST /api/auth/logout ────────────────────────────────────────────────────
-
 export function logout(_req: Request, res: Response): void {
   res.clearCookie('token');
   res.status(200).json({ success: true, message: 'Logged out successfully' });
 }
-
-// ─── GET /api/auth/me ─────────────────────────────────────────────────────────
 
 export async function me(req: Request, res: Response): Promise<void> {
   try {
