@@ -118,6 +118,8 @@ model Candidate {
   id               String            @id @db.VarChar(20)
   name             String            @db.VarChar(100)
   email            String            @unique @db.VarChar(150)
+  resume           String?           @db.VarChar(500)
+  resumeKey        String?           @db.VarChar(300)
   board            String            @db.VarChar(50)
   grade10          String            @db.VarChar(10)
   grade12          String            @db.VarChar(10)
