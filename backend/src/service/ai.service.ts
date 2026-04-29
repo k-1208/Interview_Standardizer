@@ -2,6 +2,7 @@ import { prisma } from '../utils/prismaClient.js';
 import { GEMINI_MODEL, geminiClient } from '../config/gemini.js';
 import { buildStructuredInterviewPrompt, type InterviewDifficulty } from '../utils/prompt.js';
 import { evaluateGeneratedEndpointResponse } from './aiEvaluation.service.js';
+import { extractJsonFromModelText, jsonToStringArray } from '../utils/helper.js';
 
 interface GenerateInterviewQuestionsInput {
   candidateId?: string;
@@ -40,11 +41,6 @@ const VALID_COGNITIVE_TYPES: GeneratedQuestion['cognitive_type'][] = [
   'failure analysis',
 ];
 
-const jsonToStringArray = (value: unknown): string[] => {
-  if (!Array.isArray(value)) return [];
-  return value.filter((item): item is string => typeof item === 'string' && item.trim().length > 0);
-};
-
 const clampQuestionCount = (count?: number) => {
   if (!count || Number.isNaN(count)) return DEFAULT_COUNT;
   return Math.max(1, Math.min(MAX_COUNT, Math.floor(count)));
@@ -55,22 +51,6 @@ const clampInterviewDuration = (minutes?: number, fallbackCount?: number) => {
     return Math.max(20, (fallbackCount || DEFAULT_COUNT) * 4);
   }
   return Math.max(10, Math.floor(minutes));
-};
-
-const extractJsonFromModelText = (value: string) => {
-  const trimmed = value.trim();
-  const fencedMatch = trimmed.match(/```json\s*([\s\S]*?)```/i);
-  if (fencedMatch?.[1]) {
-    return fencedMatch[1].trim();
-  }
-
-  const firstBrace = trimmed.indexOf('{');
-  const lastBrace = trimmed.lastIndexOf('}');
-  if (firstBrace >= 0 && lastBrace > firstBrace) {
-    return trimmed.slice(firstBrace, lastBrace + 1);
-  }
-
-  return trimmed;
 };
 
 const validateQuestions = (questions: unknown): GeneratedQuestion[] => {
@@ -209,3 +189,4 @@ export const generateInterviewQuestions = async (input: GenerateInterviewQuestio
     generatedAt: new Date().toISOString(),
   };
 };
+

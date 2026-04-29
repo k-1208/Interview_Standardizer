@@ -7,12 +7,6 @@ export const uploadPdf = async (req: Request, res: Response): Promise<void> => {
     return;
   }
 
-  const candidateId = String(req.body?.candidateId || '').trim();
-  if (!candidateId) {
-    res.status(400).json({ success: false, message: 'candidateId is required' });
-    return;
-  }
-
   if (!req.file) {
     res.status(400).json({ success: false, message: 'PDF file is required' });
     return;

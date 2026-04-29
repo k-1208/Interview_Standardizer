@@ -8,7 +8,7 @@ if (!accessKeyId || !secretAccessKey) {
   throw new Error('AWS credentials are missing. Set AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY.');
 }
 
-export const RESUME_BUCKET = process.env.RESUME_BUCKET || '';
+export const RESUME_BUCKET = process.env.S3_BUCKET || '';
 
 export const s3 = new S3Client({
   region,

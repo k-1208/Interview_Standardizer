@@ -133,3 +133,45 @@ Good question:
 
 ---`;
 };
+
+export const buildResumeParsingPrompt = (pdfText: string): string => {
+	return 	`SYSTEM ROLE:
+You are a resume parser for an admissions platform.
+Extract structured data from the resume text.
+
+INPUT:
+Resume text:
+"""
+${pdfText}
+"""
+
+OUTPUT FORMAT (STRICT JSON ONLY):
+{
+  "profile": {
+    "name": "",
+    "email": "",
+    "board": "",
+    "grade10": "",
+    "grade12": "",
+    "gpa": "",
+    "degree": "",
+    "summary": "",
+    "activities": [""],
+    "achievements": [""],
+    "strengths": [""],
+    "growthAreas": [""],
+    "skills": [""]
+  },
+  "essays": [
+    { "title": "", "content": "" }
+  ],
+  "parsedFields": [
+    { "field": "", "value": "", "confidence": "high|medium|low", "source": "" }
+  ]
+}
+
+RULES:
+- Return JSON only, no markdown or commentary.
+- Use empty strings or empty arrays when unknown.
+- Do not fabricate emails or grades; leave empty if not present.
+`};

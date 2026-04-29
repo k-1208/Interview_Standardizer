@@ -11,14 +11,6 @@ const COOKIE_OPTIONS = {
 export async function register(req: Request, res: Response): Promise<void> {
   const { name, organizationName, email, password } = req.body;
 
-  console.log('[auth/register] Incoming request', {
-    name,
-    organizationName,
-    email,
-    hasPassword: Boolean(password),
-    origin: req.headers.origin,
-  });
-
   if (!name || !organizationName || !email || !password) {
     console.log('[auth/register] Validation failed: missing required fields');
     res.status(400).json({ success: false, message: 'name, organizationName, email and password are required' });
@@ -28,11 +20,6 @@ export async function register(req: Request, res: Response): Promise<void> {
   try {
     const startedAt = Date.now();
     const { user, token } = await registerUser(name, organizationName, email, password);
-    console.log('[auth/register] Registration successful', {
-      userId: user.id,
-      email: user.email,
-      durationMs: Date.now() - startedAt,
-    });
     res.cookie('token', token, COOKIE_OPTIONS);
     res.status(201).json({ success: true, data: { user, token } });
   } catch (err: any) {

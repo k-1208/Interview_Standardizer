@@ -10,6 +10,29 @@ export interface JwtPayload {
   email: string;
 }
 
+const toSlug = (value: string) =>
+  value
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-');
+
+const buildUniqueWorkspaceSlug = async (organizationName: string) => {
+  const baseSlug = toSlug(organizationName) || 'workspace';
+  let slug = baseSlug;
+  let attempt = 1;
+
+  while (true) {
+    const existing = await prisma.workspace.findUnique({ where: { slug } });
+    if (!existing) {
+      return slug;
+    }
+    attempt += 1;
+    slug = `${baseSlug}-${attempt}`;
+  }
+};
+
 // ─── Register ─────────────────────────────────────────────────────────────────
 
 export async function registerUser(
@@ -21,25 +44,38 @@ export async function registerUser(
   console.log('[auth/registerUser] Checking existing user', { email });
   const existing = await prisma.user.findUnique({ where: { email } });
   if (existing) {
-    console.log('[auth/registerUser] Existing user found', { email });
     throw new Error('Email already in use');
   }
-
-  console.log('[auth/registerUser] Hashing password');
   const passwordHash = await bcrypt.hash(password, 10);
 
-  // @ts-ignore — passwordHash will exist after schema update + prisma generate
-  console.log('[auth/registerUser] Creating user in database', {
-    email,
-    organizationName,
-  });
-  const user = await prisma.user.create({
-    data: { name, organizationName, email, passwordHash },
-    select: { id: true, name: true, organizationName: true, email: true, createdAt: true },
-  });
+  const user = await prisma.$transaction(async (tx) => {
+    const createdUser = await tx.user.create({
+      data: { name, organizationName, email, passwordHash },
+      select: { id: true, name: true, organizationName: true, email: true, createdAt: true },
+    });
 
-  console.log('[auth/registerUser] User created', { userId: user.id, email: user.email });
+    const slug = await buildUniqueWorkspaceSlug(organizationName);
 
+    const workspace = await tx.workspace.create({
+      data: {
+        name: organizationName,
+        slug,
+        owner: { connect: { id: createdUser.id } },
+      },
+      select: { id: true },
+    });
+
+    await tx.workspaceMember.create({
+      data: {
+        userId: createdUser.id,
+        workspaceId: workspace.id,
+        role: 'super_admin',
+      },
+    });
+
+    return createdUser;
+  });
+  
   const token = jwt.sign(
     { userId: user.id, email: user.email } satisfies JwtPayload,
     JWT_SECRET,

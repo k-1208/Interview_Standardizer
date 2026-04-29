@@ -50,15 +50,24 @@ enum InvitationStatus {
   cancelled
 }
 
+enum ResumeFileStatus {
+  uploaded
+  parsing
+  parsed
+  failed
+}
+
 // ─── Models ───────────────────────────────────────────────────────────────────
 
 model Workspace {
   id          Int               @id @default(autoincrement())
   name        String            @db.VarChar(200)
   slug        String            @unique @db.VarChar(100)
+  ownerId     Int
   createdAt   DateTime          @default(now())
   updatedAt   DateTime          @updatedAt
 
+  owner             User               @relation("WorkspaceOwner", fields: [ownerId], references: [id], onDelete: Restrict)
   members           WorkspaceMember[]
   invitations       Invitation[]
   candidates        Candidate[]
@@ -83,7 +92,7 @@ model WorkspaceMember {
 model Invitation {
   id          Int              @id @default(autoincrement())
   email       String           @db.VarChar(150)
-  role        WorkspaceRole    @default(reviewer)
+  role        WorkspaceRole    @default(admin)
   token       String           @unique @db.VarChar(255)
   status      InvitationStatus @default(pending)
   expiresAt   DateTime
@@ -95,6 +104,7 @@ model Invitation {
   workspace   Workspace        @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   invitedBy   User             @relation(fields: [invitedById], references: [id])
 
+  @@unique([workspaceId, email])
   @@map("invitations")
 }
 
@@ -107,6 +117,7 @@ model User {
   createdAt         DateTime          @default(now())
   updatedAt         DateTime          @updatedAt
 
+  ownedWorkspaces   Workspace[]       @relation("WorkspaceOwner")
   workspaces        WorkspaceMember[]
   invitationsSent   Invitation[]
   interviewSessions InterviewSession[]
@@ -115,7 +126,7 @@ model User {
 }
 
 model Candidate {
-  id               String            @id @db.VarChar(20)
+  id               Int               @id @default(autoincrement())
   name             String            @db.VarChar(100)
   email            String            @unique @db.VarChar(150)
   resume           String?           @db.VarChar(500)
@@ -141,15 +152,34 @@ model Candidate {
   parsedFields       ParsedField[]
   interviewQuestions InterviewQuestion[]
   interviewSessions  InterviewSession[]
+  resumeFiles        ResumeFile[]
 
   @@map("candidates")
+}
+
+model ResumeFile {
+  id           Int       @id @default(autoincrement())
+  originalName String    @db.VarChar(255)
+  mimeType     String    @db.VarChar(100)
+  size         Int
+  resumeUrl    String    @db.VarChar(500)
+  resumeKey    String    @db.VarChar(300)
+  status       ResumeFileStatus @default(uploaded)
+  candidateId  Int?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  candidate    Candidate? @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+
+  @@index([candidateId])
+  @@map("resume_files")
 }
 
 model Essay {
   id          Int       @id @default(autoincrement())
   title       String    @db.VarChar(200)
   content     String    @db.Text
-  candidateId String    @db.VarChar(20)
+  candidateId Int
   createdAt   DateTime  @default(now())
 
   candidate   Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
@@ -163,7 +193,7 @@ model ParsedField {
   value       String     @db.VarChar(500)
   confidence  Confidence
   source      String     @db.VarChar(200)
-  candidateId String     @db.VarChar(20)
+  candidateId Int
   createdAt   DateTime   @default(now())
 
   candidate   Candidate  @relation(fields: [candidateId], references: [id], onDelete: Cascade)
@@ -181,7 +211,7 @@ model InterviewQuestion {
   sourceText     String?    @db.Text
   confidence     Int?
   tags           Json       // string[]
-  candidateId    String?    @db.VarChar(20)
+  candidateId    Int?
   createdAt      DateTime   @default(now())
   updatedAt      DateTime   @updatedAt
 
@@ -196,7 +226,7 @@ model InterviewSession {
   dateGenerated DateTime        @default(now())
   questionCount Int
   status        InterviewStatus @default(scheduled)
-  candidateId   String          @db.VarChar(20)
+  candidateId   Int
   generatedById Int
 
   candidate     Candidate       @relation(fields: [candidateId], references: [id], onDelete: Cascade)
