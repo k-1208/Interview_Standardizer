@@ -39,7 +39,8 @@ export default function RegisterPage() {
     setIsLoading(true);
 
     try {
-      await register({ name, organizationName, email, password });
+      const data = await register({ name, organizationName, email, password });
+      console.log("[register] response", data);
       router.push("/dashboard");
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unable to create account. Please try again.";
@@ -210,7 +211,7 @@ export default function RegisterPage() {
             <button
               type="button"
               onClick={() => router.push("/")}
-              className="text-indigo-600 font-semibold hover:text-indigo-700 transition-colors"
+              className="cursor-pointer text-indigo-600 font-semibold hover:text-indigo-700 transition-colors"
             >
               Sign in
             </button>

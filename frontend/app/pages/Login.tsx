@@ -77,7 +77,7 @@ const Login = () => {
                 placeholder="you@company.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="h-11 bg-card border-border focus:border-primary transition-colors"
+                className="h-11 bg-card border-border text-foreground placeholder:text-muted-foreground focus:border-primary transition-colors"
                 required
               />
             </div>
@@ -134,7 +134,7 @@ const Login = () => {
             <button
               type="button"
               onClick={() => navigate("/register")}
-              className="text-primary font-medium hover:text-primary/80 transition-colors"
+              className="cursor-pointer text-primary font-medium hover:text-primary/80 transition-colors"
             >
               Request access
             </button>

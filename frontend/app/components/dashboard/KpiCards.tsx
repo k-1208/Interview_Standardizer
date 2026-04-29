@@ -9,6 +9,10 @@ interface KpiCardProps {
   trendUp?: boolean;
 }
 
+interface KpiCardsProps {
+  kpisData?: any;
+}
+
 const KpiCard = ({ title, value, icon: Icon, trend, trendUp }: KpiCardProps) => (
   <div className="kpi-card">
     <div className="flex items-start justify-between mb-3">
@@ -26,19 +30,28 @@ const KpiCard = ({ title, value, icon: Icon, trend, trendUp }: KpiCardProps) => 
   </div>
 );
 
-const kpis: KpiCardProps[] = [
-  { title: "Total Candidates", value: 248, icon: Users, trend: "+12 this month", trendUp: true },
-  { title: "Parsed This Week", value: 34, icon: FileText, trend: "+8 vs last week", trendUp: true },
-  { title: "Interviews Ready", value: 18, icon: MessageSquare, trend: "5 scheduled today" },
-  { title: "Pending Reviews", value: 7, icon: Clock, trend: "3 high priority" },
-];
+const KpiCards = ({ kpisData }: KpiCardsProps) => {
+  const kpis: KpiCardProps[] = kpisData?.dashboard?.kpis
+    ? [
+        { title: "Total Candidates", value: kpisData.dashboard.kpis.totalCandidates, icon: Users },
+        { title: "Pending Reviews", value: kpisData.dashboard.kpis.pendingCandidates, icon: FileText },
+        { title: "Interviews Ready", value: kpisData.dashboard.kpis.scheduledInterviews, icon: MessageSquare },
+        { title: "Pending Invitations", value: kpisData.dashboard.kpis.pendingInvitations, icon: Clock },
+      ]
+    : [
+        { title: "Total Candidates", value: 248, icon: Users, trend: "+12 this month", trendUp: true },
+        { title: "Parsed This Week", value: 34, icon: FileText, trend: "+8 vs last week", trendUp: true },
+        { title: "Interviews Ready", value: 18, icon: MessageSquare, trend: "5 scheduled today" },
+        { title: "Pending Reviews", value: 7, icon: Clock, trend: "3 high priority" },
+      ];
 
-const KpiCards = () => (
-  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-    {kpis.map((kpi) => (
-      <KpiCard key={kpi.title} {...kpi} />
-    ))}
-  </div>
-);
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      {kpis.map((kpi) => (
+        <KpiCard key={kpi.title} {...kpi} />
+      ))}
+    </div>
+  );
+};
 
 export default KpiCards;

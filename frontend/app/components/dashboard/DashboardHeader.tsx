@@ -2,13 +2,27 @@
 
 import { Menu, Bell, Search, LogOut, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useRouter, usePathname } from "next/navigation";
+import { logout } from "@/api/auth";
+import type { WorkspaceSummary } from "@/api/auth";
 
 interface DashboardHeaderProps {
   onToggleSidebar: () => void;
   sidebarOpen: boolean;
   title?: string;
   actions?: React.ReactNode;
+  userName?: string;
+  workspaceName?: string;
+  workspaces?: WorkspaceSummary[];
+  selectedWorkspaceId?: number;
+  onWorkspaceChange?: (workspaceId: number) => void;
 }
 
 const pageTitles: Record<string, string> = {
@@ -21,11 +35,39 @@ const pageTitles: Record<string, string> = {
   "/settings": "Settings",
 };
 
-const DashboardHeader = ({ onToggleSidebar, title, actions }: DashboardHeaderProps) => {
+const DashboardHeader = ({
+  onToggleSidebar,
+  title,
+  actions,
+  userName,
+  workspaceName,
+  workspaces,
+  selectedWorkspaceId,
+  onWorkspaceChange,
+}: DashboardHeaderProps) => {
   const router = useRouter();
   const pathname = usePathname();
 
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } catch {
+      // Local token is still cleared in logout() finally block.
+    } finally {
+      router.replace("/");
+      router.refresh();
+    }
+  };
+
   const pageTitle = title || pageTitles[pathname] || "Dashboard";
+  const displayName = userName || "User";
+  const initials = displayName
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join("") || "U";
+  const selectedWorkspaceValue = selectedWorkspaceId ? String(selectedWorkspaceId) : undefined;
 
   return (
     <header className="h-14 border-b border-border bg-card/60 backdrop-blur-sm flex items-center justify-between px-4 sm:px-6 flex-shrink-0">
@@ -40,6 +82,26 @@ const DashboardHeader = ({ onToggleSidebar, title, actions }: DashboardHeaderPro
         </Button>
 
         <h1 className="text-base font-semibold text-foreground">{pageTitle}</h1>
+
+        {workspaces && workspaces.length > 0 ? (
+          <div className="hidden md:block min-w-48">
+            <Select
+              value={selectedWorkspaceValue}
+              onValueChange={(value) => onWorkspaceChange?.(Number(value))}
+            >
+              <SelectTrigger className="h-9 w-full max-w-64 bg-background/80">
+                <SelectValue placeholder="Select workspace" />
+              </SelectTrigger>
+              <SelectContent>
+                {workspaces.map((workspace) => (
+                  <SelectItem key={workspace.id} value={String(workspace.id)}>
+                    {workspace.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        ) : null}
       </div>
 
       <div className="flex items-center gap-2">
@@ -72,16 +134,21 @@ const DashboardHeader = ({ onToggleSidebar, title, actions }: DashboardHeaderPro
 
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-full bg-slate-600 flex items-center justify-center text-xs font-bold text-white">
-            SC
+            {initials}
           </div>
-          <span className="hidden sm:block text-sm font-medium text-foreground">Dr. Sarah Chen</span>
+          <div className="hidden sm:flex flex-col leading-tight">
+            <span className="text-sm font-medium text-foreground">{displayName}</span>
+            {workspaceName ? (
+              <span className="text-xs text-muted-foreground">{workspaceName}</span>
+            ) : null}
+          </div>
         </div>
 
         <Button
           variant="ghost"
           size="icon"
           className="text-muted-foreground hover:text-foreground"
-          onClick={() => router.push("/")}
+          onClick={handleLogout}
         >
           <LogOut className="w-4 h-4" />
         </Button>

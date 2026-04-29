@@ -29,7 +29,8 @@ export default function LoginPage() {
     setErrorMessage("");
 
     try {
-      await login({ email, password });
+      const data = await login({ email, password });
+      console.log("[login] response", data);
       router.push("/dashboard");
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unable to login. Please try again.";

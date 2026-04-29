@@ -26,10 +26,34 @@ export interface AuthUser {
 	createdAt?: string;
 }
 
+export interface WorkspaceSummary {
+	id: number;
+	name: string;
+	slug: string;
+}
+
+export interface WorkspaceMembership {
+	role: string;
+	joinedAt: string;
+	workspace: WorkspaceSummary;
+}
+
+export interface MeResponse {
+	id: number;
+	name: string;
+	email: string;
+	createdAt: string;
+	workspaces: WorkspaceMembership[];
+}
+
 interface ApiResponse<T> {
 	success: boolean;
 	message?: string;
 	data?: T;
+}
+
+interface RequestOptions extends RequestInit {
+	requireData?: boolean;
 }
 
 interface AuthPayload {
@@ -49,11 +73,13 @@ export interface LoginInput {
 	password: string;
 }
 
-const request = async <T>(path: string, init?: RequestInit): Promise<T> => {
+const request = async <T>(path: string, init?: RequestOptions): Promise<T> => {
+	const token = getStoredToken();
 	const response = await fetch(`${BACKEND_BASE_URL}${path}`, {
 		credentials: 'include',
 		headers: {
 			'Content-Type': 'application/json',
+			...(token ? { Authorization: `Bearer ${token}` } : {}),
 			...(init?.headers || {}),
 		},
 		...init,
@@ -65,11 +91,13 @@ const request = async <T>(path: string, init?: RequestInit): Promise<T> => {
 		throw new Error(raw.message || 'Authentication request failed');
 	}
 
-	if (raw.data === undefined) {
+	const requireData = init?.requireData ?? true;
+
+	if (requireData && raw.data === undefined) {
 		throw new Error('Invalid response from authentication server');
 	}
 
-	return raw.data;
+	return raw.data as T;
 };
 
 export const register = async (input: RegisterInput) => {
@@ -91,15 +119,18 @@ export const login = async (input: LoginInput) => {
 };
 
 export const logout = async () => {
-	const data = await request<{ message?: string }>('/api/auth/logout', {
-		method: 'POST',
-	});
-	clearStoredToken();
-	return data;
+	try {
+		return await request<{ message?: string }>('/api/auth/logout', {
+			method: 'POST',
+			requireData: false,
+		});
+	} finally {
+		clearStoredToken();
+	}
 };
 
 export const me = async () => {
-	return request<AuthUser>('/api/auth/me', {
+	return request<MeResponse>('/api/auth/me', {
 		method: 'GET',
 	});
 };

@@ -14,11 +14,12 @@ import {
 interface RecentCandidatesTableProps {
   limit?: number;
   onRowClick?: (id: string) => void;
+  candidates?: any[];
 }
 
-const RecentCandidatesTable = ({ limit = 5, onRowClick }: RecentCandidatesTableProps) => {
+const RecentCandidatesTable = ({ limit = 5, onRowClick, candidates: profileCandidates }: RecentCandidatesTableProps) => {
   const router = useRouter();
-  const candidates = mockCandidates.slice(0, limit);
+  const candidates = profileCandidates?.slice(0, limit) || mockCandidates.slice(0, limit);
 
   const handleClick = (id: string) => {
     if (onRowClick) {
