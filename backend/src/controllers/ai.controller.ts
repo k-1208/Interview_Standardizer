@@ -14,7 +14,7 @@ export const generateQuestions = async (req: Request, res: Response): Promise<vo
 
   try {
     const payload: {
-      candidateId?: string;
+      candidateId?: number | null;
       role?: string;
       context?: string;
       count?: number;
@@ -22,7 +22,7 @@ export const generateQuestions = async (req: Request, res: Response): Promise<vo
       difficulty?: 'easy' | 'medium' | 'hard';
     } = {};
 
-    if (candidateId) payload.candidateId = String(candidateId);
+    if (candidateId) payload.candidateId = Number(candidateId);
     if (role) payload.role = String(role);
     if (context) payload.context = String(context);
     if (typeof count === 'number') payload.count = count;

@@ -1,8 +1,10 @@
 import { S3Client } from '@aws-sdk/client-s3';
+import dotenv from "dotenv";
+dotenv.config();
 
 const region = process.env.AWS_REGION || 'us-east-1';
-const accessKeyId = process.env.AWS_ACCESS_KEY_ID || process.env.AWS_ACCESS_KEY;
-const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY || process.env.AWS_SECRET_KEY;
+const accessKeyId = process.env.AWS_ACCESS_KEY || process.env.AWS_ACCESS_KEY;
+const secretAccessKey = process.env.AWS_SECRET_KEY || process.env.AWS_SECRET_KEY;
 
 if (!accessKeyId || !secretAccessKey) {
   throw new Error('AWS credentials are missing. Set AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY.');

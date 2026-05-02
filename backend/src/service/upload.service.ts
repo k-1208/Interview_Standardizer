@@ -13,7 +13,7 @@ export interface UploadedPdfResult {
   size: number;
   resumeUrl: string;
   resumeKey: string;
-  candidateId: number | null;
+  candidateId: string | null;
 }
 
 export const processUploadedPdf = async (
@@ -24,6 +24,8 @@ export const processUploadedPdf = async (
   }
 
   const results: UploadedPdfResult[] = [];
+
+  console.log("upload hit")
 
   for (const file of files) {
     const extension = path.extname(file.originalname || '').toLowerCase();
@@ -73,7 +75,7 @@ export const processUploadedPdf = async (
       s3key: key,
     });
 
-    
+    console.log("📊 Added PDF job:", { fileId: String(resumeFile.id) });
 
     results.push({
       originalName: file.originalname,

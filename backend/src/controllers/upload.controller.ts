@@ -13,7 +13,7 @@ export const uploadPdf = async (req: Request, res: Response): Promise<void> => {
   }
 
   try {
-    const result = await processUploadedPdf(req.file, candidateId);
+    const result = await processUploadedPdf([req.file]);
     res.status(201).json({ success: true, data: result });
   } catch (err: any) {
     res.status(400).json({ success: false, message: err?.message || 'Failed to process uploaded file' });

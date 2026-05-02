@@ -5,7 +5,7 @@ import { evaluateGeneratedEndpointResponse } from './aiEvaluation.service.js';
 import { extractJsonFromModelText, jsonToStringArray } from '../utils/helper.js';
 
 interface GenerateInterviewQuestionsInput {
-  candidateId?: string;
+  candidateId?: number| null;
   role?: string;
   context?: string;
   count?: number;
@@ -124,7 +124,7 @@ export const generateInterviewQuestions = async (input: GenerateInterviewQuestio
 
   if (input.candidateId) {
     const candidate = await prisma.candidate.findUnique({
-      where: { id: input.candidateId },
+      where: { id: Number(input.candidateId) },
       select: {
         id: true,
         name: true,

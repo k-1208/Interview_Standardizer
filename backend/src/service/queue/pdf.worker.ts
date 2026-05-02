@@ -1,11 +1,12 @@
 import { Worker, Job } from "bullmq";
 import { connection } from "../../config/redis.js";
 import { updateStatus } from "../upload.service.js";
+import { parseResumeFile } from "../resume.service.js";
 
 const worker = new Worker(
   "pdf-processing",
   async (job: Job) => {
-    const { fileId, s3Url, s3key } = job.data;
+    const { fileId } = job.data;
 
     console.log(`📄 Processing file: ${fileId}`);
 
@@ -13,17 +14,17 @@ const worker = new Worker(
       // 1. Update DB → processing
       await updateStatus(fileId, "parsing");
 
-      
+      // 2. Extract + parse resume
+      const result = await parseResumeFile(Number(fileId));
+      console.log("📊 Parsed resume data:", result);
+      await job.updateProgress(70);
 
-      await new Promise((res) => setTimeout(res, 2000));
+      // 3. TODO: Save parsed data (result.parsed)
 
-      // 4. Save parsed data
-      // await saveParsedData(fileId, result);
+      // 4. Update DB → completed
+      await updateStatus(fileId, "parsed");
 
-      // 5. Update DB → completed
-      // await updateStatus(fileId, "completed");
-
-      console.log(`✅ Done: ${fileId}`);
+      console.log(`✅ Done: ${fileId}`, { fileId: result.fileId });
     } catch (error) {
       console.error(`❌ Failed: ${fileId}`, error);
       throw error; 
@@ -31,7 +32,7 @@ const worker = new Worker(
   },
   {
     connection,
-    concurrency: 2, // 🔥 parallel processing
+    concurrency: 2, 
   }
 );
 

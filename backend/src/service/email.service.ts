@@ -35,7 +35,7 @@ export const sendEmail = async (
 	textContent: string,
 	to: string,
 	from: string,
-	candidateId?: string,
+	candidateId?: number | null,
 	campaignId?: string,
 	cc?: string | string[]
 ) => {
@@ -101,7 +101,7 @@ export const sendInterviewEmail = async (
 	interviewLink: string,
 	campaignName: string,
 	jobTitle: string,
-	candidateId: string,
+	candidateId: number | null,
 	campaignId: string
 ) => {
 	const { subject, htmlContent, textContent } = generateInterviewEmailTemplate({
