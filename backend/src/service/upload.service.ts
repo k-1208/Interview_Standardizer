@@ -17,10 +17,15 @@ export interface UploadedPdfResult {
 }
 
 export const processUploadedPdf = async (
-  files: Express.Multer.File[]
+  files: Express.Multer.File[],
+  workspaceId: number
 ): Promise<UploadedPdfResult[]> => {
   if (!RESUME_BUCKET) {
     throw new Error('RESUME_BUCKET is not configured');
+  }
+
+  if (!workspaceId) {
+    throw new Error('workspaceId is required to process uploaded PDFs');
   }
 
   const results: UploadedPdfResult[] = [];
@@ -73,6 +78,7 @@ export const processUploadedPdf = async (
       fileId: String(resumeFile.id),
       s3Url: resumeUrl,
       s3key: key,
+      workspaceId,
     });
 
     console.log("📊 Added PDF job:", { fileId: String(resumeFile.id) });
@@ -97,3 +103,4 @@ export const updateStatus = async (fileId: string, status: 'uploaded' | 'parsing
     data: { status },
   });
 };
+

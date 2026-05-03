@@ -1,4 +1,5 @@
 import type { Request, Response } from 'express';
+import { getUser } from '../service/user.service.js';
 import { processUploadedPdf } from '../service/upload.service.js';
 
 export const uploadPdf = async (req: Request, res: Response): Promise<void> => {
@@ -13,7 +14,8 @@ export const uploadPdf = async (req: Request, res: Response): Promise<void> => {
   }
 
   try {
-    const result = await processUploadedPdf([req.file]);
+    const user = await getUser(req.user.userId);
+    const result = await processUploadedPdf([req.file], user.workspace.id);
     res.status(201).json({ success: true, data: result });
   } catch (err: any) {
     res.status(400).json({ success: false, message: err?.message || 'Failed to process uploaded file' });

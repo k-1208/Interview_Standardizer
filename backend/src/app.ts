@@ -6,6 +6,7 @@ import authRoutes from "./routes/auth.routes.js";
 import uploadRoutes from "./routes/upload.routes.js";
 import aiRoutes from "./routes/ai.routes.js";
 import userRoutes from "./routes/user.routes.js";
+import candidateRoutes from "./routes/candidate.routes.js";
 
 dotenv.config();
 
@@ -40,5 +41,6 @@ app.use("/api/auth", authRoutes);
 app.use("/api/upload", uploadRoutes);
 app.use("/api/ai", aiRoutes);
 app.use("/api/user", userRoutes);
+app.use("/api/candidates", candidateRoutes);
 
 export default app;

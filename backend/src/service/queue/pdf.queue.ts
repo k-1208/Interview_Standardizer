@@ -18,6 +18,7 @@ export const addPdfJob = async (data: {
   fileId: string;
   s3Url: string;
   s3key: string;
+  workspaceId: number;
 }) => {
   return await pdfQueue.add("parse-pdf", data);
 };

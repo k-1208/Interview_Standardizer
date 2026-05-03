@@ -128,13 +128,13 @@ model User {
 model Candidate {
   id               Int               @id @default(autoincrement())
   name             String            @db.VarChar(100)
-  email            String            @unique @db.VarChar(150)
+  email            String            @db.VarChar(150)
   resume           String?           @db.VarChar(500)
   resumeKey        String?           @db.VarChar(300)
   board            String            @db.VarChar(50)
-  grade10          String            @db.VarChar(10)
-  grade12          String            @db.VarChar(10)
-  gpa              String            @db.VarChar(10)
+  grade10          String            @db.Text
+  grade12          String            @db.Text
+  gpa              String            @db.Text
   degree           String            @db.VarChar(150)
   status           CandidateStatus   @default(pending)
   summary          String?           @db.Text
@@ -150,6 +150,8 @@ model Candidate {
   workspace          Workspace           @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   essays             Essay[]
   parsedFields       ParsedField[]
+  academicRecords    AcademicRecord[]
+  competitiveExams   CompetitiveExam[]
   interviewQuestions InterviewQuestion[]
   interviewSessions  InterviewSession[]
   resumeFiles        ResumeFile[]
@@ -193,12 +195,77 @@ model ParsedField {
   value       String     @db.VarChar(500)
   confidence  Confidence
   source      String     @db.VarChar(200)
+  payload     Json?
   candidateId Int
   createdAt   DateTime   @default(now())
 
   candidate   Candidate  @relation(fields: [candidateId], references: [id], onDelete: Cascade)
 
   @@map("parsed_fields")
+}
+
+model AcademicRecord {
+  id                    Int                @id @default(autoincrement())
+  standard              String             @db.VarChar(50)
+  schoolName            String             @db.VarChar(255)
+  board                 String             @db.VarChar(100)
+  yearOfPassing         String             @db.VarChar(20)
+  markingScheme         String             @db.VarChar(100)
+  obtainedPercentageOrCgpa String           @db.VarChar(50)
+  candidateId           Int
+  createdAt             DateTime           @default(now())
+
+  candidate             Candidate          @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  subjects              AcademicSubject[]
+
+  @@index([candidateId])
+  @@map("academic_records")
+}
+
+model AcademicSubject {
+  id                   Int            @id @default(autoincrement())
+  subject              String         @db.VarChar(100)
+  maximumMarksOrGrade  String         @db.VarChar(50)
+  obtainedMarksOrGrade String         @db.VarChar(50)
+  academicRecordId     Int
+  createdAt            DateTime       @default(now())
+
+  academicRecord       AcademicRecord @relation(fields: [academicRecordId], references: [id], onDelete: Cascade)
+
+  @@index([academicRecordId])
+  @@map("academic_subjects")
+}
+
+model CompetitiveExam {
+  id               Int           @id @default(autoincrement())
+  examName         String        @db.VarChar(100)
+  status           String?       @db.VarChar(50)
+  testDate         String?       @db.VarChar(20)
+  rollNumber       String?       @db.VarChar(100)
+  totalScore       String?       @db.VarChar(50)
+  rankOrPercentile String?       @db.VarChar(50)
+  result           String?       @db.VarChar(50)
+  candidateId      Int
+  createdAt        DateTime      @default(now())
+
+  candidate        Candidate     @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  sectionScores    ExamSection[]
+
+  @@index([candidateId])
+  @@map("competitive_exams")
+}
+
+model ExamSection {
+  id              Int            @id @default(autoincrement())
+  section         String         @db.VarChar(100)
+  score           String         @db.VarChar(50)
+  competitiveExamId Int
+  createdAt       DateTime       @default(now())
+
+  competitiveExam CompetitiveExam @relation(fields: [competitiveExamId], references: [id], onDelete: Cascade)
+
+  @@index([competitiveExamId])
+  @@map("exam_sections")
 }
 
 model InterviewQuestion {

@@ -1,12 +1,12 @@
 import { Worker, Job } from "bullmq";
 import { connection } from "../../config/redis.js";
 import { updateStatus } from "../upload.service.js";
-import { parseResumeFile } from "../resume.service.js";
+import { parseResumeFile, saveParsedResume } from "../resume.service.js";
 
 const worker = new Worker(
   "pdf-processing",
   async (job: Job) => {
-    const { fileId } = job.data;
+    const { fileId, workspaceId } = job.data;
 
     console.log(`📄 Processing file: ${fileId}`);
 
@@ -19,7 +19,9 @@ const worker = new Worker(
       console.log("📊 Parsed resume data:", result);
       await job.updateProgress(70);
 
-      // 3. TODO: Save parsed data (result.parsed)
+      // 3. Save parsed data into the candidate tables
+      const saved = await saveParsedResume(result.fileId, result.parsed, workspaceId);
+      console.log("📝 Saved parsed resume:", saved);
 
       // 4. Update DB → completed
       await updateStatus(fileId, "parsed");
