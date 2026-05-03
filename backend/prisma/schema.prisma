@@ -138,6 +138,7 @@ model Candidate {
   degree           String            @db.VarChar(150)
   status           CandidateStatus   @default(pending)
   summary          String?           @db.Text
+  aiSummary        String?           @db.Text
   activities       Json              // string[]
   achievements     Json              // string[]
   strengths        Json              // string[]
@@ -192,7 +193,7 @@ model Essay {
 model ParsedField {
   id          Int        @id @default(autoincrement())
   field       String     @db.VarChar(100)
-  value       String     @db.VarChar(500)
+  value       String     @db.Text
   confidence  Confidence
   source      String     @db.VarChar(200)
   payload     Json?

@@ -18,6 +18,11 @@ type ParsedResume = {
     gpa: string;
     degree: string;
     summary: string;
+    aiSummary?: {
+      summary: string;
+      keyInsights: string[];
+      growthAreas: string[];
+    };
     activities: string[];
     achievements: string[];
     strengths: string[];
@@ -263,6 +268,13 @@ export const parseResume = async (pdfText: string): Promise<ParsedResume> => {
       gpa: safeString(profile.gpa),
       degree: safeString(profile.degree),
       summary: safeString(profile.summary),
+      aiSummary: profile.aiSummary
+        ? {
+            summary: safeString((profile as any).aiSummary?.summary),
+            keyInsights: safeArray((profile as any).aiSummary?.keyInsights),
+            growthAreas: safeArray((profile as any).aiSummary?.growthAreas),
+          }
+        : undefined,
       activities: safeArray(profile.activities),
       achievements: safeArray(profile.achievements),
       strengths: safeArray(profile.strengths),
@@ -275,7 +287,7 @@ export const parseResume = async (pdfText: string): Promise<ParsedResume> => {
     parsedFields,
   };
 
-  return postProcess(result);
+  return postProcess(result as ParsedResume);
 };
 
 function postProcess(parsed: ParsedResume): ParsedResume {
@@ -392,6 +404,7 @@ export const saveParsedResume = async (
         gpa: parsed.profile.gpa || '',
         degree: parsed.profile.degree || '',
         summary: parsed.profile.summary || null,
+        aiSummary: parsed.profile.aiSummary?.summary || null,
         activities: parsed.profile.activities,
         achievements: parsed.profile.achievements,
         strengths: parsed.profile.strengths,

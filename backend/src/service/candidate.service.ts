@@ -41,6 +41,7 @@ export async function getCandidateDetail({ userId, workspaceId, candidateId }: G
 			degree: true,
 			status: true,
 			summary: true,
+			aiSummary: true,
 			activities: true,
 			achievements: true,
 			strengths: true,

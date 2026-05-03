@@ -242,6 +242,11 @@ JEE TABLE — columns in order:
       }
     ]
   },
+  "aiSummary": {
+    "summary": "",
+    "keyInsights": [""],
+    "growthAreas": [""]
+  },
   "essays": [
     { "title": "", "content": "" }
   ],
@@ -302,6 +307,13 @@ PASS 4 — REMAINING FIELDS:
   - activities: from "Extra-Curricular Activities" table → "<Activity> - <Level> - <Achievement>"
   - achievements: from Co-Curricular and Leadership sections
   - essays: question text → title, full answer text → content
+
+  PASS 5 — AI SUMMARY:
+    After extracting the structured profile, produce a concise AI-generated summary of the candidate profile. This must be an objective, high-level paragraph (2-4 sentences) that highlights the candidate's strengths, key insights from their academic and activity records, and 2-4 actionable growth areas the candidate can work on. Return this as 'aiSummary' with fields:
+      - summary: short paragraph (2-4 sentences)
+      - keyInsights: array of short bullets (each 6-15 words) capturing most important signals
+      - growthAreas: array of 2-4 concise suggestions candidate can work on
+    The 'aiSummary' should be specific to the extracted profile (do NOT hallucinate facts not present in extracted fields).
 
 ===== STRICT OUTPUT RULES =====
 - Return ONLY the raw JSON object. No markdown. No code fences. No commentary.
