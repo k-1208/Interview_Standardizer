@@ -1,5 +1,6 @@
 import type { Request, Response } from 'express';
 import { generateInterviewQuestions } from '../service/ai.service.js';
+import { createMeetingBot } from '../service/zoomBot.service.js';
 
 export const generateQuestions = async (req: Request, res: Response): Promise<void> => {
   const { candidateId, role, context, count, interviewDurationMinutes, difficulty } = req.body || {};
@@ -41,6 +42,34 @@ export const generateQuestions = async (req: Request, res: Response): Promise<vo
     res.status(isNotFound ? 404 : 500).json({
       success: false,
       message: err?.message || 'Failed to generate interview questions',
+    });
+  }
+};
+
+export const sendInterviewBot = async (req: Request, res: Response): Promise<void> => {
+  const { meetingUrl, candidateId, botName, joinAt } = req.body || {};
+
+  if (!meetingUrl || typeof meetingUrl !== 'string') {
+    res.status(400).json({ success: false, message: 'meetingUrl is required' });
+    return;
+  }
+
+  try {
+    const payload: { meetingUrl: string; candidateId?: number | null; botName?: string; joinAt?: string | null } = {
+      meetingUrl,
+      candidateId: candidateId ? Number(candidateId) : null,
+    };
+
+    if (botName) payload.botName = String(botName);
+    if (joinAt) payload.joinAt = String(joinAt);
+
+    const data = await createMeetingBot(payload);
+
+    res.status(201).json({ success: true, data });
+  } catch (err: any) {
+    res.status(500).json({
+      success: false,
+      message: err?.message || 'Failed to send bot to meeting',
     });
   }
 };
