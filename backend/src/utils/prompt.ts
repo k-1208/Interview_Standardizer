@@ -56,6 +56,8 @@ Generate a set of interview questions that:
 2. Probe qualitative traits (thinking, reasoning, reflection, trade-offs)
 3. Require explanation, not recall
 4. Avoid generic phrasing (e.g., "tell me about", "what are your strengths")
+5. Keep each question concise (30-40 words maximum)
+6. Use simple, easy-to-understand language
 
 ---
 
@@ -133,6 +135,8 @@ Good question:
 
 ---`;
 };
+
+
 export const buildResumeParsingPrompt = (pdfText: string): string => {
 	return `SYSTEM ROLE:
 You are a precise academic data extractor for an admissions platform.

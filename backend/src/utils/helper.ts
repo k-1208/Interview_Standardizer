@@ -1,3 +1,5 @@
+import crypto from 'crypto';
+
 export const extractJsonFromModelText = (value: string) => {
   const trimmed = value.trim();
   const fencedMatch = trimmed.match(/```json\s*([\s\S]*?)```/i);
@@ -17,4 +19,8 @@ export const extractJsonFromModelText = (value: string) => {
 export const jsonToStringArray = (value: unknown): string[] => {
   if (!Array.isArray(value)) return [];
   return value.filter((item): item is string => typeof item === 'string' && item.trim().length > 0);
+};
+
+export const generateToken = (size = 32): string => {
+  return crypto.randomBytes(size).toString('hex');
 };

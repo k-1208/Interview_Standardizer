@@ -1,7 +1,7 @@
 import nodemailer from 'nodemailer';
 import { prisma } from '../utils/prismaClient.js';
 import dotenv from 'dotenv';
-import { generateInterviewEmailTemplate } from '../utils/email.js';
+import { generateInterviewEmailTemplate, generateWorkspaceInviteEmailTemplate } from '../utils/email.js';
 
 dotenv.config();
 
@@ -95,6 +95,8 @@ export const sendEmail = async (
 	console.log('Email sent:', info.messageId);
 };
 
+// export const sendInvitationEmail = async (email: string, name: string, workspaceName: string, inviterName: string) => {
+
 export const sendInterviewEmail = async (
 	candidateEmail: string,
 	candidateName: string,
@@ -122,4 +124,34 @@ export const sendInterviewEmail = async (
 		candidateId,
 		campaignId
 	);
+};
+
+export const sendWorkspaceInvitationEmail = async (
+	inviteeEmail: string,
+	workspaceName: string,
+	inviterName: string,
+	inviteLink: string
+) => {
+	const { subject, htmlContent, textContent } = generateWorkspaceInviteEmailTemplate({
+		inviteeEmail,
+		workspaceName,
+		inviterName,
+		inviteLink,
+	});
+
+	const from = process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER;
+	if (!from) {
+		throw createHttpError('Sender email is required', 400);
+	}
+
+	const mailOptions = {
+		from,
+		to: inviteeEmail,
+		subject,
+		text: textContent,
+		html: htmlContent,
+	};
+
+	const info = await transporter.sendMail(mailOptions);
+	console.log('Invitation email sent:', info.messageId);
 };

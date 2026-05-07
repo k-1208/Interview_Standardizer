@@ -170,3 +170,44 @@ export async function getCandidateDetail({ userId, workspaceId, candidateId }: G
 		candidate,
 	};
 }
+
+export type GetCandidatesInput = {
+	userId: number;
+	workspaceId: number;
+};
+
+export async function getCandidates({ userId, workspaceId }: GetCandidatesInput) {
+	const membership = await prisma.workspaceMember.findFirst({
+		where: {
+			userId,
+			workspaceId,
+		},
+		select: {
+			id: true,
+		},
+	});
+
+	if (!membership) {
+		throw new Error('User does not have access to this workspace');
+	}
+
+	const candidates = await prisma.candidate.findMany({
+		where: { workspaceId },
+		orderBy: { updatedAt: 'desc' },
+		select: {
+			id: true,
+			name: true,
+			board: true,
+			grade10: true,
+			grade12: true,
+			status: true,
+			createdAt: true,
+			updatedAt: true,
+		},
+	});
+
+	return {
+		workspaceId,
+		candidates,
+	};
+}

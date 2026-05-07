@@ -2,7 +2,7 @@ import { prisma } from '../utils/prismaClient.js';
 import { GEMINI_MODEL, geminiClient } from '../config/gemini.js';
 import { buildStructuredInterviewPrompt, type InterviewDifficulty } from '../utils/prompt.js';
 import { evaluateGeneratedEndpointResponse } from './aiEvaluation.service.js';
-import { extractJsonFromModelText, jsonToStringArray } from '../utils/helper.js';
+import { extractJsonFromModelText, generateToken, jsonToStringArray } from '../utils/helper.js';
 
 interface GenerateInterviewQuestionsInput {
   candidateId?: number| null;
@@ -40,6 +40,24 @@ const VALID_COGNITIVE_TYPES: GeneratedQuestion['cognitive_type'][] = [
   'abstraction',
   'failure analysis',
 ];
+
+const QUESTION_CATEGORY_MAP: Record<GeneratedQuestion['dimension'], string> = {
+  'Depth of Thinking': 'academic',
+  'Learning Ability': 'academic',
+  Curiosity: 'motivation',
+  'Decision-Making': 'problem_solving',
+  'Intellectual Honesty': 'ethics',
+};
+
+const CATEGORY_TO_DIMENSION: Record<string, GeneratedQuestion['dimension']> = {
+  academic: 'Depth of Thinking',
+  motivation: 'Curiosity',
+  leadership: 'Decision-Making',
+  ethics: 'Intellectual Honesty',
+  problem_solving: 'Decision-Making',
+};
+
+const buildInterviewQuestionId = () => `IQ${generateToken(9)}`;
 
 const clampQuestionCount = (count?: number) => {
   if (!count || Number.isNaN(count)) return DEFAULT_COUNT;
@@ -121,6 +139,9 @@ export const generateInterviewQuestions = async (input: GenerateInterviewQuestio
 
   let candidateName = 'Candidate';
   let candidateSkills: string[] = [];
+  let candidateProfile: unknown | null = null;
+  let existingQuestions: GeneratedQuestion[] | null = null;
+  let existingGeneratedAt: string | null = null;
 
   if (input.candidateId) {
     const candidate = await prisma.candidate.findUnique({
@@ -128,8 +149,75 @@ export const generateInterviewQuestions = async (input: GenerateInterviewQuestio
       select: {
         id: true,
         name: true,
-        skills: true,
+        email: true,
+        resume: true,
+        resumeKey: true,
+        board: true,
+        grade10: true,
+        grade12: true,
+        gpa: true,
+        degree: true,
+        status: true,
+        summary: true,
+        aiSummary: true,
+        activities: true,
+        achievements: true,
         strengths: true,
+        growthAreas: true,
+        skills: true,
+        createdAt: true,
+        updatedAt: true,
+        essays: {
+          select: {
+            title: true,
+            content: true,
+            createdAt: true,
+          },
+        },
+        parsedFields: {
+          select: {
+            field: true,
+            value: true,
+            confidence: true,
+            source: true,
+            payload: true,
+            createdAt: true,
+          },
+        },
+        academicRecords: {
+          select: {
+            standard: true,
+            schoolName: true,
+            board: true,
+            yearOfPassing: true,
+            markingScheme: true,
+            obtainedPercentageOrCgpa: true,
+            subjects: {
+              select: {
+                subject: true,
+                maximumMarksOrGrade: true,
+                obtainedMarksOrGrade: true,
+              },
+            },
+          },
+        },
+        competitiveExams: {
+          select: {
+            examName: true,
+            status: true,
+            testDate: true,
+            rollNumber: true,
+            totalScore: true,
+            rankOrPercentile: true,
+            result: true,
+            sectionScores: {
+              select: {
+                section: true,
+                score: true,
+              },
+            },
+          },
+        },
       },
     });
 
@@ -145,6 +233,38 @@ export const generateInterviewQuestions = async (input: GenerateInterviewQuestio
     ];
 
     candidateSkills = Array.from(new Set(skillList.map((item) => item.trim()).filter(Boolean)));
+    candidateProfile = candidate;
+
+    const storedQuestions = await prisma.interviewQuestion.findMany({
+      where: { candidateId: Number(input.candidateId) },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    if (storedQuestions.length > 0) {
+      existingQuestions = storedQuestions.map((item) => {
+        const dimension = VALID_DIMENSIONS.includes(item.skillEvaluated as GeneratedQuestion['dimension'])
+          ? (item.skillEvaluated as GeneratedQuestion['dimension'])
+          : (CATEGORY_TO_DIMENSION[item.category] || 'Depth of Thinking');
+
+        const cognitiveType = (Array.isArray(item.tags)
+          ? item.tags.find((tag) => VALID_COGNITIVE_TYPES.includes(tag as GeneratedQuestion['cognitive_type']))
+          : null) as GeneratedQuestion['cognitive_type'] | null;
+
+        return {
+          dimension,
+          anchor: item.sourceText || 'Candidate profile context',
+          cognitive_type: cognitiveType || 'reflection',
+          difficulty: item.difficulty as GeneratedQuestion['difficulty'],
+          question: item.question,
+          why_this_question: item.rationale,
+        };
+      });
+
+      const lastStoredQuestion = storedQuestions[storedQuestions.length - 1];
+      if (lastStoredQuestion) {
+        existingGeneratedAt = lastStoredQuestion.createdAt.toISOString();
+      }
+    }
   }
 
   if (candidateSkills.length === 0) {
@@ -163,14 +283,36 @@ export const generateInterviewQuestions = async (input: GenerateInterviewQuestio
     role,
     context: input.context || null,
     extractedSkills: candidateSkills,
+    candidateProfile,
   };
 
-  const questions = await generateQuestionsWithGemini(
-    parsedResumeData,
-    desiredCount,
-    interviewDurationMinutes,
-    difficulty
-  );
+  const questions = existingQuestions
+    ? existingQuestions
+    : await generateQuestionsWithGemini(
+        parsedResumeData,
+        desiredCount,
+        interviewDurationMinutes,
+        difficulty
+      );
+
+  if (!existingQuestions && input.candidateId) {
+    const data = questions.map((item) => ({
+      id: buildInterviewQuestionId(),
+      candidateId: Number(input.candidateId),
+      category: QUESTION_CATEGORY_MAP[item.dimension] || 'academic',
+      difficulty: item.difficulty,
+      question: item.question,
+      skillEvaluated: item.dimension,
+      rationale: item.why_this_question,
+      sourceText: item.anchor,
+      confidence: null,
+      tags: [item.cognitive_type],
+    }));
+
+    if (data.length > 0) {
+      await prisma.interviewQuestion.createMany({ data });
+    }
+  }
 
   const evaluation = await evaluateGeneratedEndpointResponse({
     candidateProfile: parsedResumeData,
@@ -186,7 +328,7 @@ export const generateInterviewQuestions = async (input: GenerateInterviewQuestio
     questionCount: questions.length,
     questions,
     evaluation,
-    generatedAt: new Date().toISOString(),
+    generatedAt: existingGeneratedAt || new Date().toISOString(),
   };
 };
 
