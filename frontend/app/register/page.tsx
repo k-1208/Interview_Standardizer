@@ -1,15 +1,18 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowRight, Eye, EyeOff, Shield } from "lucide-react";
 import { getStoredToken, register } from "@/api/auth";
+import { acceptInvite } from "@/api/invite";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 export default function RegisterPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const inviteToken = searchParams?.get("inviteToken") || "";
   const [name, setName] = useState("");
   const [organizationName, setOrganizationName] = useState("");
   const [email, setEmail] = useState("");
@@ -22,10 +25,22 @@ export default function RegisterPage() {
 
   useEffect(() => {
     const token = getStoredToken();
-    if (token) {
+    if (!token) return;
+
+    const handleExistingSession = async () => {
+      if (inviteToken) {
+        try {
+          await acceptInvite(inviteToken);
+        } catch (error) {
+          console.error("[invite] accept failed", error);
+        }
+      }
+
       router.push("/dashboard");
-    }
-  }, [router]);
+    };
+
+    handleExistingSession();
+  }, [router, inviteToken]);
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,6 +56,11 @@ export default function RegisterPage() {
     try {
       const data = await register({ name, organizationName, email, password });
       console.log("[register] response", data);
+
+      if (inviteToken) {
+        await acceptInvite(inviteToken);
+      }
+
       router.push("/dashboard");
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unable to create account. Please try again.";

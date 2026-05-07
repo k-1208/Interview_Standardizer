@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
-import { useParams, useRouter } from "next/navigation";
-import { mockInterviewQuestions, InterviewQuestion } from "@/lib/mock-data";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { generateInterviewQuestions } from "@/api/ai";
+import { InterviewQuestion } from "@/lib/mock-data";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -35,15 +36,84 @@ const difficultyConfig: Record<string, { label: string; stars: number }> = {
 export default function AIQuestionsPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [activeFilter, setActiveFilter] = useState<string>("all");
   const [explainId, setExplainId] = useState<string | null>(null);
+  const [questions, setQuestions] = useState<InterviewQuestion[]>([]);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [error, setError] = useState<string>("");
 
   const categories = ["all", ...Object.keys(categoryConfig)];
-  const filtered = activeFilter === "all"
-    ? mockInterviewQuestions
-    : mockInterviewQuestions.filter((q) => q.category === activeFilter);
+  const filtered = useMemo(() => {
+    if (activeFilter === "all") return questions;
+    return questions.filter((q) => q.category === activeFilter);
+  }, [activeFilter, questions]);
 
-  const explainQuestion = mockInterviewQuestions.find((q) => q.id === explainId);
+  const explainQuestion = questions.find((q) => q.id === explainId);
+
+  const generateQuestions = useCallback(async () => {
+    try {
+      setIsGenerating(true);
+      setError("");
+      setExplainId(null);
+
+      const response = await generateInterviewQuestions({
+        candidateId: Number(id),
+        count: 6,
+        difficulty: "medium",
+      });
+
+      const mapped = response.questions.map((item, index) => {
+        const categoryMap: Record<string, InterviewQuestion["category"]> = {
+          "Depth of Thinking": "academic",
+          "Learning Ability": "academic",
+          "Curiosity": "motivation",
+          "Decision-Making": "problem_solving",
+          "Intellectual Honesty": "ethics",
+        };
+
+        return {
+          id: `Q${index + 1}`,
+          category: categoryMap[item.dimension] || "academic",
+          difficulty: item.difficulty,
+          question: item.question,
+          skillEvaluated: item.dimension,
+          rationale: item.why_this_question,
+          sourceText: item.anchor,
+          confidence: undefined,
+          tags: [item.cognitive_type],
+        } satisfies InterviewQuestion;
+      });
+
+      setQuestions(mapped);
+      setActiveFilter("all");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to generate questions";
+      setError(message);
+    } finally {
+      setIsGenerating(false);
+    }
+  }, [id]);
+
+  useEffect(() => {
+    if (searchParams.get("generate") === "1") {
+      generateQuestions();
+    }
+  }, [generateQuestions, searchParams]);
+
+  if (isGenerating && questions.length === 0) {
+    return (
+      <div className="space-y-6 fade-in">
+        <Button variant="ghost" size="sm" onClick={() => router.push(`/candidate/${id}`)} className="gap-1.5 text-muted-foreground">
+          <ArrowLeft className="w-4 h-4" /> Back to Profile
+        </Button>
+        <div className="rounded-xl border border-border bg-card p-12 text-center">
+          <div className="mx-auto mb-4 h-10 w-10 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+          <p className="text-sm text-muted-foreground">Generating interview questions...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 fade-in">
@@ -51,26 +121,44 @@ export default function AIQuestionsPage() {
         <ArrowLeft className="w-4 h-4" /> Back to Profile
       </Button>
 
-      {/* Filters */}
-      <div className="flex gap-2 flex-wrap">
-        {categories.map((cat) => {
-          const config = cat !== "all" ? categoryConfig[cat] : null;
-          return (
-            <button
-              key={cat}
-              onClick={() => setActiveFilter(cat)}
-              className={cn(
-                "px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 border",
-                activeFilter === cat
-                  ? "bg-primary text-primary-foreground border-primary"
-                  : "bg-card text-muted-foreground border-border hover:border-primary/30 hover:text-foreground"
-              )}
-            >
-              {cat === "all" ? "All Questions" : config?.label}
-            </button>
-          );
-        })}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex gap-2 flex-wrap">
+          {categories.map((cat) => {
+            const config = cat !== "all" ? categoryConfig[cat] : null;
+            return (
+              <button
+                key={cat}
+                onClick={() => setActiveFilter(cat)}
+                disabled={questions.length === 0}
+                className={cn(
+                  "px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 border",
+                  activeFilter === cat
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "bg-card text-muted-foreground border-border hover:border-primary/30 hover:text-foreground",
+                  questions.length === 0 ? "opacity-50 cursor-not-allowed" : ""
+                )}
+              >
+                {cat === "all" ? "All Questions" : config?.label}
+              </button>
+            );
+          })}
+        </div>
+        <Button onClick={generateQuestions} disabled={isGenerating} className="gap-2">
+          {isGenerating ? "Generating..." : "Generate Questions"}
+        </Button>
       </div>
+
+      {error && (
+        <div className="rounded-lg border border-border bg-card p-3 text-sm text-muted-foreground">
+          {error}
+        </div>
+      )}
+
+      {questions.length === 0 && !isGenerating ? (
+        <div className="rounded-xl border border-border bg-card p-10 text-center text-sm text-muted-foreground">
+          Click "Generate Questions" to load dummy interview questions.
+        </div>
+      ) : null}
 
       {/* Split view if explaining */}
       <div className={cn("grid gap-6", explainId ? "grid-cols-1 lg:grid-cols-2" : "grid-cols-1")}>
@@ -158,7 +246,7 @@ export default function AIQuestionsPage() {
                   <div className="p-3 rounded-lg bg-yellow-50 border border-yellow-200">
                     <div className="flex items-start gap-2">
                       <FileText className="w-4 h-4 text-yellow-600 flex-shrink-0 mt-0.5" />
-                      <p className="text-sm text-foreground/80 leading-relaxed italic">"{explainQuestion.sourceText}"</p>
+                      <p className="text-sm text-foreground leading-relaxed italic">"{explainQuestion.sourceText}"</p>
                     </div>
                   </div>
                 </div>

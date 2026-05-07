@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
-import { getStoredToken, me, type MeResponse } from "@/api/auth";
+import { clearStoredToken, getStoredToken, me, type MeResponse } from "@/api/auth";
 
 const SELECTED_WORKSPACE_KEY = "selected_workspace_id";
 
@@ -45,8 +45,9 @@ export default function DashboardLayout({
           }
         }
       } catch {
-        // If token is invalid, redirect back to login.
+        // If token is invalid, clear it and redirect back to login.
         if (isMounted) {
+          clearStoredToken();
           router.replace("/");
         }
       }

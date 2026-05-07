@@ -43,7 +43,7 @@ const CandidateProfilePage = () => {
           <p className="text-xs text-muted-foreground mt-1">{candidate.email}</p>
         </div>
         <div className="flex gap-2 flex-shrink-0">
-          <Button onClick={() => navigate(`/candidate/${id}/questions`)} className="gap-1.5">
+          <Button onClick={() => navigate(`/candidate/${id}/questions?generate=1`)} className="gap-1.5">
             <MessageSquare className="w-4 h-4" /> Generate Questions
           </Button>
           <Button variant="outline" onClick={() => navigate(`/candidate/${id}/history`)} className="gap-1.5">

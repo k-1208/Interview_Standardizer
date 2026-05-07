@@ -13,13 +13,11 @@ export interface UploadPdfResponse {
   size: number;
   resumeUrl: string;
   resumeKey: string;
-  candidateId: string;
 }
 
-export const uploadPdf = async (file: File, candidateId: string): Promise<UploadPdfResponse> => {
+export const uploadPdf = async (file: File): Promise<UploadPdfResponse> => {
   const formData = new FormData();
   formData.append("file", file);
-  formData.append("candidateId", candidateId);
 
   const response = await fetch(`${BACKEND_BASE_URL}/api/upload/pdf`, {
     method: "POST",

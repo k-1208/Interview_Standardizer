@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState, useCallback } from "react";
 import { Upload, FileText, Loader2, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -17,7 +16,6 @@ const parsingSteps = [
 ];
 
 export default function UploadPage() {
-  const router = useRouter();
   const [state, setState] = useState<UploadState>("idle");
   const [dragOver, setDragOver] = useState(false);
   const [fileName, setFileName] = useState("");
@@ -25,7 +23,26 @@ export default function UploadPage() {
   const [progress, setProgress] = useState(0);
   const [currentStep, setCurrentStep] = useState(0);
   const [errorMessage, setErrorMessage] = useState("");
-  const [candidateId, setCandidateId] = useState("");
+  const [redirectSecondsLeft, setRedirectSecondsLeft] = useState(10);
+
+  useEffect(() => {
+    if (state !== "complete") {
+      return;
+    }
+
+    const countdownTimer = window.setInterval(() => {
+      setRedirectSecondsLeft((secondsLeft) => Math.max(secondsLeft - 1, 0));
+    }, 1000);
+
+    const redirectTimer = window.setTimeout(() => {
+      window.location.href = "/dashboard";
+    }, 10000);
+
+    return () => {
+      window.clearInterval(countdownTimer);
+      window.clearTimeout(redirectTimer);
+    };
+  }, [state]);
 
   const handleFile = (file: File) => {
     if (file && file.type === "application/pdf") {
@@ -54,17 +71,12 @@ export default function UploadPage() {
       return;
     }
 
-    if (!candidateId.trim()) {
-      setErrorMessage("Please enter candidate ID.");
-      return;
-    }
-
     setState("parsing");
     setProgress(0);
     setCurrentStep(0);
 
     try {
-      await uploadPdf(selectedFile, candidateId.trim());
+      await uploadPdf(selectedFile);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to upload PDF";
       setErrorMessage(message);
@@ -80,8 +92,7 @@ export default function UploadPage() {
     }
 
     setState("complete");
-    await new Promise((r) => setTimeout(r, 1000));
-    router.push("/review");
+    setRedirectSecondsLeft(10);
   };
 
   const handleCancel = () => {
@@ -139,7 +150,7 @@ export default function UploadPage() {
           <CheckCircle2 className="w-7 h-7 text-green-600" />
         </div>
         <h2 className="text-xl font-semibold text-foreground mb-2">Parsing Complete</h2>
-        <p className="text-sm text-muted-foreground">Redirecting to review…</p>
+        <p className="text-sm text-muted-foreground">Redirecting to dashboard in {redirectSecondsLeft} seconds…</p>
       </div>
     );
   }
@@ -198,20 +209,6 @@ export default function UploadPage() {
             </>
           )}
         </label>
-      </div>
-
-      <div className="space-y-2">
-        <label htmlFor="candidateId" className="text-sm font-medium text-foreground">
-          Candidate ID
-        </label>
-        <input
-          id="candidateId"
-          type="text"
-          value={candidateId}
-          onChange={(e) => setCandidateId(e.target.value)}
-          placeholder="Enter candidate ID"
-          className="h-11 w-full rounded-lg border border-border bg-white px-3 text-sm text-foreground outline-none focus:border-primary"
-        />
       </div>
 
       {/* Actions */}

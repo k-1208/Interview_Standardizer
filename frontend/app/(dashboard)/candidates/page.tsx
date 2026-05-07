@@ -1,12 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Search, SlidersHorizontal, ArrowUpDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { mockCandidates, statusConfig, CandidateProfile } from "@/lib/mock-data";
+import { statusConfig } from "@/lib/mock-data";
+import { getProfile } from "@/api/user";
+import { getCandidates } from "@/api/candidate";
 import {
   Table,
   TableBody,
@@ -22,20 +24,64 @@ export default function CandidateDatabasePage() {
   const [boardFilter, setBoardFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [sortBy, setSortBy] = useState<string>("date");
+  const [candidates, setCandidates] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  let filtered = mockCandidates.filter((c) => {
-    const matchSearch = c.name.toLowerCase().includes(search.toLowerCase()) || c.id.includes(search);
-    const matchBoard = boardFilter === "all" || c.board === boardFilter;
-    const matchStatus = statusFilter === "all" || c.status === statusFilter;
-    return matchSearch && matchBoard && matchStatus;
-  });
+  useEffect(() => {
+    let isMounted = true;
 
-  filtered = [...filtered].sort((a, b) => {
-    if (sortBy === "marks") return parseFloat(b.grade12) - parseFloat(a.grade12);
-    return new Date(b.dateAdded).getTime() - new Date(a.dateAdded).getTime();
-  });
+    const loadCandidates = async () => {
+      try {
+        const profile = await getProfile();
+        const workspaceId =
+          profile?.workspace?.id ||
+          profile?.membership?.workspace?.id ||
+          profile?.position?.workspace?.id;
 
-  const boards = [...new Set(mockCandidates.map((c) => c.board))];
+        if (!workspaceId) {
+          throw new Error("Workspace not found for user");
+        }
+
+        const data = await getCandidates(workspaceId);
+        if (isMounted) {
+          setCandidates(data.candidates || []);
+        }
+      } catch (error) {
+        console.error("[candidates] failed to load candidates", error);
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    loadCandidates();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const filtered = useMemo(() => {
+    const list = candidates.filter((c) => {
+      const matchSearch =
+        c.name.toLowerCase().includes(search.toLowerCase()) ||
+        String(c.id).includes(search);
+      const matchBoard = boardFilter === "all" || c.board === boardFilter;
+      const matchStatus = statusFilter === "all" || c.status === statusFilter;
+      return matchSearch && matchBoard && matchStatus;
+    });
+
+    return list.sort((a, b) => {
+      if (sortBy === "marks") return parseFloat(b.grade12) - parseFloat(a.grade12);
+      return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+    });
+  }, [candidates, search, boardFilter, statusFilter, sortBy]);
+
+  const boards = useMemo(
+    () => [...new Set(candidates.map((c) => c.board).filter((board) => typeof board === "string" && board.trim().length > 0))],
+    [candidates]
+  );
 
   return (
     <div className="space-y-6 fade-in">
@@ -104,26 +150,36 @@ export default function CandidateDatabasePage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filtered.map((c) => {
-              const status = statusConfig[c.status];
-              return (
-                <TableRow
-                  key={c.id}
-                  className="table-row-hover"
-                  onClick={() => router.push(`/candidate/${c.id}`)}
-                >
-                  <TableCell className="font-medium text-foreground">{c.name}</TableCell>
-                  <TableCell className="text-muted-foreground">{c.board}</TableCell>
-                  <TableCell className="text-muted-foreground">{c.grade10}%</TableCell>
-                  <TableCell className="text-muted-foreground">{c.grade12}%</TableCell>
-                  <TableCell>
-                    <span className={`status-badge ${status.className}`}>{status.label}</span>
-                  </TableCell>
-                  <TableCell className="text-muted-foreground text-xs font-mono">{c.dateAdded}</TableCell>
-                </TableRow>
-              );
-            })}
-            {filtered.length === 0 && (
+            {isLoading ? (
+              <TableRow>
+                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                  Loading candidates...
+                </TableCell>
+              </TableRow>
+            ) : (
+              filtered.map((c) => {
+                const status = statusConfig[c.status as keyof typeof statusConfig] || statusConfig.pending;
+                return (
+                  <TableRow
+                    key={c.id}
+                    className="table-row-hover"
+                    onClick={() => router.push(`/candidate/${c.id}`)}
+                  >
+                    <TableCell className="font-medium text-foreground">{c.name}</TableCell>
+                    <TableCell className="text-muted-foreground">{c.board}</TableCell>
+                    <TableCell className="text-muted-foreground">{c.grade10}%</TableCell>
+                    <TableCell className="text-muted-foreground">{c.grade12}%</TableCell>
+                    <TableCell>
+                      <span className={`status-badge ${status.className}`}>{status.label}</span>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground text-xs font-mono">
+                      {new Date(c.updatedAt).toISOString().slice(0, 10)}
+                    </TableCell>
+                  </TableRow>
+                );
+              })
+            )}
+            {!isLoading && filtered.length === 0 && (
               <TableRow>
                 <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                   No candidates match your filters.

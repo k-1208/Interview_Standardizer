@@ -1,15 +1,18 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Eye, EyeOff, ArrowRight, Shield } from "lucide-react";
-import { getStoredToken, login } from "@/api/auth";
+import { clearStoredToken, getStoredToken, login, me } from "@/api/auth";
+import { acceptInvite } from "@/api/invite";
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const inviteToken = searchParams?.get("inviteToken") || "";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -18,10 +21,27 @@ export default function LoginPage() {
 
   useEffect(() => {
     const token = getStoredToken();
-    if (token) {
-      router.push("/dashboard");
-    }
-  }, [router]);
+    if (!token) return;
+
+    const handleExistingSession = async () => {
+      try {
+        await me();
+        if (inviteToken) {
+          try {
+            await acceptInvite(inviteToken);
+          } catch (error) {
+            console.error("[invite] accept failed", error);
+          }
+        }
+
+        router.push("/dashboard");
+      } catch {
+        clearStoredToken();
+      }
+    };
+
+    handleExistingSession();
+  }, [router, inviteToken]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,6 +51,11 @@ export default function LoginPage() {
     try {
       const data = await login({ email, password });
       console.log("[login] response", data);
+
+      if (inviteToken) {
+        await acceptInvite(inviteToken);
+      }
+
       router.push("/dashboard");
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unable to login. Please try again.";
