@@ -22,6 +22,9 @@ export const uploadPdf = async (file: File): Promise<UploadPdfResponse> => {
   const response = await fetch(`${BACKEND_BASE_URL}/api/upload/pdf`, {
     method: "POST",
     credentials: "include",
+    headers: {
+      "ngrok-skip-browser-warning": "true",
+    },
     body: formData,
   });
 

@@ -36,6 +36,7 @@ export const getCandidates = async (workspaceId: number) => {
 		credentials: 'include',
 		headers: {
 			'Content-Type': 'application/json',
+			'ngrok-skip-browser-warning': 'true',
 			...(token ? { Authorization: `Bearer ${token}` } : {}),
 		},
 	});
@@ -186,6 +187,7 @@ export const getCandidateById = async (candidateId: number, workspaceId: number)
 			credentials: 'include',
 			headers: {
 				'Content-Type': 'application/json',
+				'ngrok-skip-browser-warning': 'true',
 				...(token ? { Authorization: `Bearer ${token}` } : {}),
 			},
 		}
@@ -208,6 +210,7 @@ export const getCandidateTranscriptAnalysis = async (candidateId: number, worksp
 			credentials: 'include',
 			headers: {
 				'Content-Type': 'application/json',
+				'ngrok-skip-browser-warning': 'true',
 				...(token ? { Authorization: `Bearer ${token}` } : {}),
 			},
 		}

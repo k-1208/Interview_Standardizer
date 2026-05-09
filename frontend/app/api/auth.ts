@@ -79,6 +79,7 @@ const request = async <T>(path: string, init?: RequestOptions): Promise<T> => {
 		credentials: 'include',
 		headers: {
 			'Content-Type': 'application/json',
+			'ngrok-skip-browser-warning': 'true',
 			...(token ? { Authorization: `Bearer ${token}` } : {}),
 			...(init?.headers || {}),
 		},

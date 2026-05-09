@@ -27,6 +27,7 @@ export const inviteMember = async (input: InviteMemberInput): Promise<any> => {
 		credentials: 'include',
 		headers: {
 			'Content-Type': 'application/json',
+			'ngrok-skip-browser-warning': 'true',
 			...(token ? { Authorization: `Bearer ${token}` } : {}),
 		},
 		body: JSON.stringify(input),
@@ -47,6 +48,7 @@ export const validateInvite = async (tokenValue: string): Promise<any> => {
 		credentials: 'include',
 		headers: {
 			'Content-Type': 'application/json',
+			'ngrok-skip-browser-warning': 'true',
 		},
 	});
 
@@ -66,6 +68,7 @@ export const acceptInvite = async (tokenValue: string): Promise<any> => {
 		credentials: 'include',
 		headers: {
 			'Content-Type': 'application/json',
+			'ngrok-skip-browser-warning': 'true',
 			...(token ? { Authorization: `Bearer ${token}` } : {}),
 		},
 		body: JSON.stringify({ token: tokenValue }),

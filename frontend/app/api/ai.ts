@@ -52,6 +52,7 @@ export const generateInterviewQuestions = async (input: GenerateQuestionsInput) 
     credentials: "include",
     headers: {
       "Content-Type": "application/json",
+      "ngrok-skip-browser-warning": "true",
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
     body: JSON.stringify(input),
@@ -88,6 +89,7 @@ export const sendInterviewBot = async (input: SendBotInput) => {
     credentials: "include",
     headers: {
       "Content-Type": "application/json",
+      "ngrok-skip-browser-warning": "true",
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
     body: JSON.stringify(input),
