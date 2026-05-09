@@ -14,7 +14,14 @@ import {
 interface RecentCandidatesTableProps {
   limit?: number;
   onRowClick?: (id: string) => void;
-  candidates?: any[];
+  candidates?: Array<{
+    id: string;
+    name: string;
+    board: string;
+    grade12: string;
+    status: keyof typeof statusConfig;
+    dateAdded: string;
+  }>;
 }
 
 const RecentCandidatesTable = ({ limit = 5, onRowClick, candidates: profileCandidates }: RecentCandidatesTableProps) => {

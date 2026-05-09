@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,7 +9,7 @@ import { Eye, EyeOff, ArrowRight, Shield } from "lucide-react";
 import { clearStoredToken, getStoredToken, login, me } from "@/api/auth";
 import { acceptInvite } from "@/api/invite";
 
-export default function LoginPage() {
+function LoginPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const inviteToken = searchParams?.get("inviteToken") || "";
@@ -190,5 +190,19 @@ export default function LoginPage() {
         </div>
       </section>
     </main>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="min-h-screen flex items-center justify-center bg-slate-50">
+          <div className="h-10 w-10 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
+        </main>
+      }
+    >
+      <LoginPageContent />
+    </Suspense>
   );
 }
