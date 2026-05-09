@@ -38,10 +38,11 @@ const DashboardSidebar = ({ open, onToggle }: DashboardSidebarProps) => {
   return (
     <aside
       className={cn(
-        "flex-shrink-0 flex flex-col transition-all duration-300 ease-in-out relative sidebar-gradient",
+        "flex-shrink-0 flex flex-col transition-all duration-300 ease-in-out sidebar-gradient",
         "text-sidebar-fg",
-        open ? "w-60" : "w-0 lg:w-16",
-        !open && "overflow-hidden"
+        "fixed inset-y-0 left-0 z-40 lg:static",
+        open ? "translate-x-0 w-60" : "-translate-x-full w-60 lg:translate-x-0 lg:w-16",
+        !open && "lg:overflow-hidden"
       )}
     >
       {/* Header */}

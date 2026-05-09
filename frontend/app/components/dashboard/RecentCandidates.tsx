@@ -38,7 +38,8 @@ const RecentCandidatesTable = ({ limit = 5, onRowClick, candidates: profileCandi
 
   return (
     <div className="bg-card border border-border rounded-xl overflow-hidden" style={{ boxShadow: "var(--shadow-sm)" }}>
-      <Table>
+      <div className="overflow-x-auto">
+        <Table className="min-w-[720px]">
         <TableHeader>
           <TableRow className="hover:bg-transparent">
             <TableHead className="font-semibold">Name</TableHead>
@@ -68,7 +69,8 @@ const RecentCandidatesTable = ({ limit = 5, onRowClick, candidates: profileCandi
             );
           })}
         </TableBody>
-      </Table>
+        </Table>
+      </div>
     </div>
   );
 };
