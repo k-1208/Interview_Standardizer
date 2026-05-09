@@ -218,6 +218,7 @@ export const getCandidateTranscriptAnalysis = async (candidateId: number, worksp
 	if (!response.ok || !raw.success || !raw.data) {
 		throw new Error(raw.message || 'Failed to load transcript analysis');
 	}
-
+	
+	console.log("mmmmm")
 	return raw.data;
 };
