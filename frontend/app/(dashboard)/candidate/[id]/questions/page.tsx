@@ -8,7 +8,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
-  Star,
   ArrowLeft,
   Eye,
   GraduationCap,
@@ -17,6 +16,8 @@ import {
   Shield,
   Lightbulb,
   FileText,
+  ThumbsUp,
+  ThumbsDown,
 } from "lucide-react";
 
 const categoryConfig: Record<string, { label: string; color: string; icon: React.ElementType }> = {
@@ -33,6 +34,12 @@ const difficultyConfig: Record<string, { label: string; stars: number }> = {
   hard: { label: "Hard", stars: 3 },
 };
 
+const difficultySentiment: Record<string, { up: string; down: string }> = {
+  easy: { up: "text-emerald-500", down: "text-border" },
+  medium: { up: "text-amber-500", down: "text-amber-500" },
+  hard: { up: "text-border", down: "text-rose-500" },
+};
+
 export default function AIQuestionsPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
@@ -42,6 +49,7 @@ export default function AIQuestionsPage() {
   const [questions, setQuestions] = useState<InterviewQuestion[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string>("");
+  const [feedbackById, setFeedbackById] = useState<Record<string, "up" | "down" | null>>({});
 
   const categories = ["all", ...Object.keys(categoryConfig)];
   const filtered = useMemo(() => {
@@ -166,7 +174,8 @@ export default function AIQuestionsPage() {
         <div className="space-y-3">
           {filtered.map((q) => {
             const cat = categoryConfig[q.category] || categoryConfig.academic;
-            const diff = difficultyConfig[q.difficulty] || difficultyConfig.medium;
+            const sentiment = difficultySentiment[q.difficulty] || difficultySentiment.medium;
+            const feedback = feedbackById[q.id] || null;
             const CatIcon = cat.icon;
 
             return (
@@ -189,16 +198,51 @@ export default function AIQuestionsPage() {
                         {cat.label}
                       </Badge>
                       <span className="text-xs text-muted-foreground">Skill: {q.skillEvaluated}</span>
-                      <span className="flex items-center gap-0.5 ml-auto">
-                        {Array.from({ length: 3 }).map((_, i) => (
-                          <Star
-                            key={i}
+                      <span className="flex items-center gap-1.5 ml-auto">
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            setFeedbackById((current) => ({
+                              ...current,
+                              [q.id]: current[q.id] === "up" ? null : "up",
+                            }));
+                          }}
+                          className={cn(
+                            "flex items-center justify-center rounded-full p-1 transition-colors",
+                            feedback === "up" ? "bg-emerald-100" : "hover:bg-muted"
+                          )}
+                          aria-label="Thumbs up"
+                        >
+                          <ThumbsUp
                             className={cn(
-                              "w-3 h-3",
-                              i < diff.stars ? "text-yellow-400 fill-yellow-400" : "text-border"
+                              "w-3.5 h-3.5",
+                              feedback === "up" ? "text-emerald-600" : sentiment.up
                             )}
                           />
-                        ))}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            setFeedbackById((current) => ({
+                              ...current,
+                              [q.id]: current[q.id] === "down" ? null : "down",
+                            }));
+                          }}
+                          className={cn(
+                            "flex items-center justify-center rounded-full p-1 transition-colors",
+                            feedback === "down" ? "bg-rose-100" : "hover:bg-muted"
+                          )}
+                          aria-label="Thumbs down"
+                        >
+                          <ThumbsDown
+                            className={cn(
+                              "w-3.5 h-3.5",
+                              feedback === "down" ? "text-rose-600" : sentiment.down
+                            )}
+                          />
+                        </button>
                       </span>
                     </div>
                   </div>
