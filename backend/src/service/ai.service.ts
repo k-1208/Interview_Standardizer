@@ -152,6 +152,7 @@ export const generateInterviewQuestions = async (input: GenerateInterviewQuestio
         email: true,
         resume: true,
         resumeKey: true,
+        botId: true,
         board: true,
         grade10: true,
         grade12: true,

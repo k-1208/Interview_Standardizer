@@ -7,6 +7,7 @@ import uploadRoutes from "./routes/upload.routes.js";
 import aiRoutes from "./routes/ai.routes.js";
 import userRoutes from "./routes/user.routes.js";
 import candidateRoutes from "./routes/candidate.routes.js";
+import webhookRoutes from "./routes/webhook.routes.js";
 
 dotenv.config();
 
@@ -42,5 +43,6 @@ app.use("/api/upload", uploadRoutes);
 app.use("/api/ai", aiRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/candidates", candidateRoutes);
+app.use("/api/webhooks", webhookRoutes);
 
 export default app;

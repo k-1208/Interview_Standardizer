@@ -7,6 +7,10 @@ export interface StructuredPromptInput {
 	difficulty: InterviewDifficulty;
 }
 
+export interface TranscriptAnalysisPromptInput {
+  transcript: string;
+}
+
 const safeJsonStringify = (value: unknown) => {
 	try {
 		return JSON.stringify(value, null, 2);
@@ -134,6 +138,41 @@ Good question:
 "What assumptions did your rainfall prediction model make about data distribution, and how would those assumptions break in a different geographic region?"
 
 ---`;
+};
+
+export const buildTranscriptAnalysisPrompt = ({
+  transcript,
+}: TranscriptAnalysisPromptInput): string => {
+  return `SYSTEM ROLE:
+You are an expert interview analyst. Your job is to summarize the conversation and list all interview questions asked.
+
+INPUT:
+Transcript text:
+"""
+${transcript}
+"""
+
+TASK:
+1. Write a concise summary of the interview (5-8 sentences).
+2. Extract each interview question and the candidate's answer that follows it.
+
+OUTPUT FORMAT (STRICT JSON ONLY):
+{
+  "summary": "...",
+  "questionAnswerPairs": [
+    {
+      "question": "...",
+      "answer": "..."
+    }
+  ]
+}
+
+RULES:
+- Output valid JSON only.
+- If you cannot find any questions, return an empty array.
+- If an answer is unclear, use an empty string for that answer.
+- Do not include any extra keys.
+`;
 };
 
 

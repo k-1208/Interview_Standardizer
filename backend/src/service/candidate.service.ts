@@ -34,6 +34,7 @@ export async function getCandidateDetail({ userId, workspaceId, candidateId }: G
 			email: true,
 			resume: true,
 			resumeKey: true,
+			botId: true,
 			board: true,
 			grade10: true,
 			grade12: true,
@@ -175,6 +176,97 @@ export type GetCandidatesInput = {
 	userId: number;
 	workspaceId: number;
 };
+
+export type GetCandidateTranscriptAnalysisInput = {
+	userId: number;
+	workspaceId: number;
+	candidateId: number;
+};
+
+export async function getCandidateTranscriptAnalysis({
+	userId,
+	workspaceId,
+	candidateId,
+}: GetCandidateTranscriptAnalysisInput) {
+	const membership = await prisma.workspaceMember.findFirst({
+		where: {
+			userId,
+			workspaceId,
+		},
+		select: {
+			id: true,
+		},
+	});
+
+	if (!membership) {
+		throw new Error('User does not have access to this workspace');
+	}
+
+	const candidate = await prisma.candidate.findFirst({
+		where: {
+			id: candidateId,
+			workspaceId,
+		},
+		select: {
+			id: true,
+		},
+	});
+
+	if (!candidate) {
+		throw new Error('Candidate not found in this workspace');
+	}
+
+	const analysis = await prisma.transcriptAnalysis.findFirst({
+		where: { candidateId: candidate.id },
+		orderBy: { createdAt: 'desc' },
+		select: {
+			id: true,
+			botId: true,
+			recordingId: true,
+			transcriptId: true,
+			summary: true,
+			questionsAsked: true,
+			questionAnswerPairs: true,
+			createdAt: true,
+		},
+	});
+
+	const normalizedAnalysis = analysis
+		? {
+			...analysis,
+			summary: typeof analysis.summary === 'string' ? analysis.summary : null,
+			questionsAsked: Array.isArray(analysis.questionsAsked)
+				? analysis.questionsAsked.filter(
+						(item): item is string => typeof item === 'string' && item.trim().length > 0
+					)
+				: [],
+			questionAnswerPairs: Array.isArray(analysis.questionAnswerPairs)
+				? analysis.questionAnswerPairs
+						.map((pair) => {
+							const pairObject = pair && typeof pair === 'object'
+								? (pair as Record<string, unknown>)
+								: null;
+							const question =
+								pairObject && typeof pairObject.question === 'string'
+									? pairObject.question.trim()
+									: '';
+							const answer =
+								pairObject && typeof pairObject.answer === 'string'
+									? pairObject.answer.trim()
+									: '';
+							return { question, answer };
+						})
+						.filter((pair) => pair.question.length > 0)
+				: [],
+		}
+		: null;
+
+	return {
+		workspaceId,
+		candidateId: candidate.id,
+		analysis: normalizedAnalysis,
+	};
+}
 
 export async function getCandidates({ userId, workspaceId }: GetCandidatesInput) {
 	const membership = await prisma.workspaceMember.findFirst({

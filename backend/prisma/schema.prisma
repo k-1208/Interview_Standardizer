@@ -131,6 +131,7 @@ model Candidate {
   email            String            @db.VarChar(150)
   resume           String?           @db.VarChar(500)
   resumeKey        String?           @db.VarChar(300)
+  botId            String?           @db.VarChar(150)
   board            String            @db.VarChar(50)
   grade10          String            @db.Text
   grade12          String            @db.Text
@@ -155,9 +156,29 @@ model Candidate {
   competitiveExams   CompetitiveExam[]
   interviewQuestions InterviewQuestion[]
   interviewSessions  InterviewSession[]
+  transcriptAnalyses TranscriptAnalysis[]
   resumeFiles        ResumeFile[]
 
   @@map("candidates")
+}
+
+model TranscriptAnalysis {
+  id             Int       @id @default(autoincrement())
+  botId          String?   @db.VarChar(150)
+  recordingId    String?   @db.VarChar(100)
+  transcriptId   String?   @db.VarChar(100)
+  transcriptText String?   @db.LongText
+  summary        String?   @db.Text
+  questionsAsked Json      // string[]
+  questionAnswerPairs Json // { question: string; answer: string }[]
+  candidateId    Int
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  candidate      Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+
+  @@index([candidateId])
+  @@map("transcript_analyses")
 }
 
 model ResumeFile {
