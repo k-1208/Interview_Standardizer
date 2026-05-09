@@ -161,6 +161,23 @@ export interface CandidateDetailResponse {
 	};
 }
 
+export interface TranscriptAnalysisItem {
+	id: number;
+	botId: string | null;
+	recordingId: string | null;
+	transcriptId: string | null;
+	summary: string | null;
+	questionsAsked: string[];
+	questionAnswerPairs?: Array<{ question: string; answer: string }>;
+	createdAt: string;
+}
+
+export interface CandidateTranscriptAnalysisResponse {
+	workspaceId: number;
+	candidateId: number;
+	analysis: TranscriptAnalysisItem | null;
+}
+
 export const getCandidateById = async (candidateId: number, workspaceId: number) => {
 	const token = getStoredToken();
 	const response = await fetch(
@@ -178,6 +195,28 @@ export const getCandidateById = async (candidateId: number, workspaceId: number)
 
 	if (!response.ok || !raw.success || !raw.data) {
 		throw new Error(raw.message || 'Failed to load candidate');
+	}
+
+	return raw.data;
+};
+
+export const getCandidateTranscriptAnalysis = async (candidateId: number, workspaceId: number) => {
+	const token = getStoredToken();
+	const response = await fetch(
+		`${BACKEND_BASE_URL}/api/candidates/${candidateId}/transcript-analysis?workspaceId=${workspaceId}`,
+		{
+			credentials: 'include',
+			headers: {
+				'Content-Type': 'application/json',
+				...(token ? { Authorization: `Bearer ${token}` } : {}),
+			},
+		}
+	);
+
+	const raw = (await response.json().catch(() => ({}))) as ApiResponse<CandidateTranscriptAnalysisResponse>;
+
+	if (!response.ok || !raw.success || !raw.data) {
+		throw new Error(raw.message || 'Failed to load transcript analysis');
 	}
 
 	return raw.data;

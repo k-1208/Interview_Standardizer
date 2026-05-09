@@ -180,7 +180,7 @@ export default function SettingsPage() {
                   <div className="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-white text-xs font-semibold">
                     {member.name
                       .split(' ')
-                      .map((part) => part[0])
+                      .map((part: string) => part[0])
                       .slice(0, 2)
                       .join('')}
                   </div>

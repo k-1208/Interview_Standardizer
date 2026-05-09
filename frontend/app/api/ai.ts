@@ -65,3 +65,39 @@ export const generateInterviewQuestions = async (input: GenerateQuestionsInput) 
 
   return raw.data;
 };
+
+export interface SendBotInput {
+  meetingUrl: string;
+  candidateId?: number;
+  botName?: string;
+  joinAt?: string | null;
+}
+
+export interface SendBotResponse {
+  id: string;
+  meeting_url: unknown;
+  bot_name?: string;
+  join_at?: string | null;
+  recording_config?: unknown;
+}
+
+export const sendInterviewBot = async (input: SendBotInput) => {
+  const token = getStoredToken();
+  const response = await fetch(`${BACKEND_BASE_URL}/api/ai/bot/join`, {
+    method: "POST",
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify(input),
+  });
+
+  const raw = (await response.json().catch(() => ({}))) as ApiResponse<SendBotResponse>;
+
+  if (!response.ok || !raw.success || !raw.data) {
+    throw new Error(raw.message || "Failed to send bot to meeting");
+  }
+
+  return raw.data;
+};

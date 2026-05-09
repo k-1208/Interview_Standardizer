@@ -20,6 +20,7 @@ import {
   ClipboardList,
 } from "lucide-react";
 import { getCandidateById, type CandidateDetailResponse } from "@/api/candidate";
+import { sendInterviewBot } from "@/api/ai";
 
 const SELECTED_WORKSPACE_KEY = "selected_workspace_id";
 
@@ -46,6 +47,12 @@ export default function CandidateProfilePage() {
   const [error, setError] = useState("");
   const [expandedExamIds, setExpandedExamIds] = useState<number[]>([]);
   const [selectedAcademicId, setSelectedAcademicId] = useState<number | null>(null);
+  const [showBotModal, setShowBotModal] = useState(false);
+  const [meetingUrl, setMeetingUrl] = useState("");
+  const [botName, setBotName] = useState("Plaksha Interview Bot");
+  const [botError, setBotError] = useState("");
+  const [botSuccess, setBotSuccess] = useState("");
+  const [isSendingBot, setIsSendingBot] = useState(false);
 
   useEffect(() => {
     const loadCandidate = async () => {
@@ -142,16 +149,38 @@ export default function CandidateProfilePage() {
           <p className="text-sm text-muted-foreground">{candidate.degree} · {candidate.board} · GPA {candidate.gpa}</p>
           <p className="text-xs text-muted-foreground mt-1">{candidate.email}</p>
         </div>
-        <div className="flex gap-2 flex-shrink-0 flex-wrap">
-          <Button onClick={() => router.push(`/candidate/${id}/questions?generate=1`)} className="gap-1.5">
-            <MessageSquare className="w-4 h-4" /> Generate Questions
-          </Button>
-          <Button variant="outline" onClick={() => router.push(`/candidate/${id}/history`)} className="gap-1.5">
-            <History className="w-4 h-4" /> History
-          </Button>
-          <Button variant="outline" onClick={() => router.push("/export")} className="gap-1.5">
-            <FileDown className="w-4 h-4" /> Export
-          </Button>
+        <div className="flex flex-col gap-2 flex-shrink-0">
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" onClick={() => router.push(`/candidate/${id}/history`)} className="gap-1.5">
+              <History className="w-4 h-4" /> History
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => router.push(`/candidate/${id}/analysis`)}
+              className="gap-1.5"
+            >
+              <ClipboardList className="w-4 h-4" /> Interview Analysis
+            </Button>
+            <Button variant="outline" onClick={() => router.push("/export")} className="gap-1.5">
+              <FileDown className="w-4 h-4" /> Export
+            </Button>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button onClick={() => router.push(`/candidate/${id}/questions?generate=1`)} className="gap-1.5">
+              <MessageSquare className="w-4 h-4" /> Generate Questions
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setBotError("");
+                setBotSuccess("");
+                setShowBotModal(true);
+              }}
+              className="gap-1.5"
+            >
+              <Sparkles className="w-4 h-4" /> Send Bot to Meeting
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -418,6 +447,101 @@ export default function CandidateProfilePage() {
           ))}
         </div>
       </section>
+
+      {showBotModal ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-md rounded-2xl bg-card border border-border p-6" style={{ boxShadow: "var(--shadow-sm)" }}>
+            <div className="flex items-center justify-between">
+              <h3 className="text-base font-semibold text-foreground">Send Bot to Meeting</h3>
+              <button
+                className="text-xs text-muted-foreground hover:text-foreground"
+                onClick={() => setShowBotModal(false)}
+              >
+                Close
+              </button>
+            </div>
+
+            <p className="mt-2 text-xs text-muted-foreground">
+              Paste a meeting URL and we will dispatch the bot to join and capture the transcript.
+            </p>
+
+            <div className="mt-4 space-y-4">
+              <div>
+                <p className="text-xs font-medium text-foreground">Meeting URL</p>
+                <input
+                  type="url"
+                  placeholder="https://zoom.us/j/123..."
+                  className="mt-1 w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground"
+                  value={meetingUrl}
+                  onChange={(e) => setMeetingUrl(e.target.value)}
+                />
+              </div>
+
+              <div>
+                <p className="text-xs font-medium text-foreground">Bot Name</p>
+                <input
+                  type="text"
+                  className="mt-1 w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground"
+                  value={botName}
+                  onChange={(e) => setBotName(e.target.value)}
+                />
+              </div>
+            </div>
+
+            {botError ? (
+              <div className="mt-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+                {botError}
+              </div>
+            ) : null}
+
+            {botSuccess ? (
+              <div className="mt-4 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-700">
+                {botSuccess}
+              </div>
+            ) : null}
+
+            <div className="mt-6 flex items-center justify-end space-x-2">
+              <button
+                className="text-xs text-muted-foreground hover:text-foreground"
+                onClick={() => setShowBotModal(false)}
+              >
+                Cancel
+              </button>
+              <button
+                className="text-xs bg-primary text-primary-foreground px-3 py-2 rounded-md disabled:opacity-60"
+                onClick={async () => {
+                  if (!meetingUrl) {
+                    setBotError("Meeting URL is required");
+                    return;
+                  }
+
+                  try {
+                    setBotError("");
+                    setBotSuccess("");
+                    setIsSendingBot(true);
+                    await sendInterviewBot({
+                      meetingUrl,
+                      candidateId: Number(id),
+                      botName: botName.trim() || undefined,
+                    });
+                    setBotSuccess("Bot is on the way to the meeting.");
+                    setMeetingUrl("");
+                  } catch (err) {
+                    const message = err instanceof Error ? err.message : "Failed to send bot";
+                    setBotError(message);
+                  } finally {
+                    setIsSendingBot(false);
+                  }
+                }}
+                disabled={isSendingBot}
+              >
+                {isSendingBot ? "Sending..." : "Send Bot"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
     </div>
   );
 }
