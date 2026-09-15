@@ -12,16 +12,38 @@ import webhookRoutes from "./routes/webhook.routes.js";
 dotenv.config();
 
 const app = express();
+const allowedOrigins = [
+  "https://interviewiq-amber.vercel.app",
+  "http://localhost:3000",
+];
+
 const corsOptions: cors.CorsOptions = {
   origin: (origin, callback) => {
-    if (!origin) {
+    if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
       return;
     }
-    callback(null, origin);
+    callback(new Error("Not allowed by CORS"));
   },
   credentials: true,
+  methods: ["GET", "HEAD", "PUT", "PATCH", "POST", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization", "ngrok-skip-browser-warning"],
 };
+
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  if (origin && allowedOrigins.includes(origin)) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+  }
+  res.setHeader("Access-Control-Allow-Methods", "GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, ngrok-skip-browser-warning");
+  res.setHeader("Access-Control-Allow-Credentials", "true");
+  if (req.method === "OPTIONS") {
+    res.status(204).end();
+    return;
+  }
+  next();
+});
 
 app.use(cors(corsOptions));
 
