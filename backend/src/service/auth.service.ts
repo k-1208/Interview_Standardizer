@@ -1,6 +1,7 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { prisma } from '../utils/prismaClient.js';
+import { createWorkspaceForUserInTransaction } from './workspace.service.js';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'changeme_use_strong_secret_in_env';
 const JWT_EXPIRES_IN = '7d';
@@ -9,29 +10,6 @@ export interface JwtPayload {
   userId: number;
   email: string;
 }
-
-const toSlug = (value: string) =>
-  value
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9\s-]/g, '')
-    .replace(/\s+/g, '-')
-    .replace(/-+/g, '-');
-
-const buildUniqueWorkspaceSlug = async (organizationName: string) => {
-  const baseSlug = toSlug(organizationName) || 'workspace';
-  let slug = baseSlug;
-  let attempt = 1;
-
-  while (true) {
-    const existing = await prisma.workspace.findUnique({ where: { slug } });
-    if (!existing) {
-      return slug;
-    }
-    attempt += 1;
-    slug = `${baseSlug}-${attempt}`;
-  }
-};
 
 // ─── Register ─────────────────────────────────────────────────────────────────
 
@@ -54,28 +32,93 @@ export async function registerUser(
       select: { id: true, name: true, organizationName: true, email: true, createdAt: true },
     });
 
-    const slug = await buildUniqueWorkspaceSlug(organizationName);
+    await createWorkspaceForUserInTransaction(tx, createdUser.id, organizationName);
 
-    const workspace = await tx.workspace.create({
+    return createdUser;
+  });
+  
+  const token = jwt.sign(
+    { userId: user.id, email: user.email } satisfies JwtPayload,
+    JWT_SECRET,
+    { expiresIn: JWT_EXPIRES_IN }
+  );
+
+  return { user, token };
+}
+
+// ─── Register via workspace invitation (no new workspace) ─────────────────────
+
+export async function registerUserFromInvitation(
+  name: string,
+  email: string,
+  password: string,
+  inviteToken: string
+) {
+  const normalizedEmail = email.trim().toLowerCase();
+
+  const invitation = await prisma.invitation.findUnique({
+    where: { token: inviteToken },
+    include: {
+      workspace: { select: { id: true, name: true } },
+    },
+  });
+
+  if (!invitation) {
+    throw new Error('Invitation not found');
+  }
+
+  const now = new Date();
+  const isExpired = invitation.expiresAt.getTime() < now.getTime();
+
+  if (isExpired && invitation.status === 'pending') {
+    await prisma.invitation.update({
+      where: { id: invitation.id },
+      data: { status: 'expired' },
+    });
+  }
+
+  if (invitation.status !== 'pending' || isExpired) {
+    throw new Error('Invitation expired or already used');
+  }
+
+  if (normalizedEmail !== invitation.email.toLowerCase()) {
+    throw new Error('Email must match the invitation');
+  }
+
+  const existing = await prisma.user.findUnique({ where: { email: normalizedEmail } });
+  if (existing) {
+    throw new Error('Email already in use — sign in and accept the invitation');
+  }
+
+  const passwordHash = await bcrypt.hash(password, 10);
+
+  const user = await prisma.$transaction(async (tx) => {
+    const createdUser = await tx.user.create({
       data: {
-        name: organizationName,
-        slug,
-        owner: { connect: { id: createdUser.id } },
+        name,
+        organizationName: invitation.workspace.name,
+        email: normalizedEmail,
+        passwordHash,
       },
-      select: { id: true },
+      select: { id: true, name: true, organizationName: true, email: true, createdAt: true },
     });
 
     await tx.workspaceMember.create({
       data: {
         userId: createdUser.id,
-        workspaceId: workspace.id,
-        role: 'super_admin',
+        workspaceId: invitation.workspaceId,
+        role: invitation.role,
       },
+    });
+
+    await tx.invitation.update({
+      where: { id: invitation.id },
+      data: { status: 'accepted' },
     });
 
     return createdUser;
   });
-  
+
   const token = jwt.sign(
     { userId: user.id, email: user.email } satisfies JwtPayload,
     JWT_SECRET,

@@ -1,7 +1,10 @@
 "use client";
 
-import { Menu, Bell, Search, LogOut, Upload } from "lucide-react";
+import { useState } from "react";
+import { Menu, Bell, Search, LogOut, Upload, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -23,6 +26,7 @@ interface DashboardHeaderProps {
   workspaces?: WorkspaceSummary[];
   selectedWorkspaceId?: number;
   onWorkspaceChange?: (workspaceId: number) => void;
+  onCreateOrganization?: (name: string) => Promise<void>;
 }
 
 const pageTitles: Record<string, string> = {
@@ -44,9 +48,14 @@ const DashboardHeader = ({
   workspaces,
   selectedWorkspaceId,
   onWorkspaceChange,
+  onCreateOrganization,
 }: DashboardHeaderProps) => {
   const router = useRouter();
   const pathname = usePathname();
+  const [showCreateOrg, setShowCreateOrg] = useState(false);
+  const [newOrgName, setNewOrgName] = useState("");
+  const [createOrgError, setCreateOrgError] = useState("");
+  const [isCreatingOrg, setIsCreatingOrg] = useState(false);
 
   const handleLogout = async () => {
     try {
@@ -69,6 +78,27 @@ const DashboardHeader = ({
     .join("") || "U";
   const selectedWorkspaceValue = selectedWorkspaceId ? String(selectedWorkspaceId) : undefined;
 
+  const handleCreateOrgSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!onCreateOrganization || !newOrgName.trim()) {
+      setCreateOrgError("Organization name is required");
+      return;
+    }
+
+    setCreateOrgError("");
+    setIsCreatingOrg(true);
+    try {
+      await onCreateOrganization(newOrgName.trim());
+      setNewOrgName("");
+      setShowCreateOrg(false);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to create organization";
+      setCreateOrgError(message);
+    } finally {
+      setIsCreatingOrg(false);
+    }
+  };
+
   return (
     <header className="h-14 border-b border-border bg-card/60 backdrop-blur-sm flex items-center justify-between px-4 sm:px-6 flex-shrink-0">
       <div className="flex items-center gap-3">
@@ -83,14 +113,14 @@ const DashboardHeader = ({
 
         <h1 className="text-base font-semibold text-foreground">{pageTitle}</h1>
 
-        {workspaces && workspaces.length > 0 ? (
-          <div className="hidden md:block min-w-48">
+        <div className="hidden md:flex items-center gap-2 min-w-48">
+          {workspaces && workspaces.length > 0 ? (
             <Select
               value={selectedWorkspaceValue}
               onValueChange={(value) => onWorkspaceChange?.(Number(value))}
             >
               <SelectTrigger className="h-9 w-full max-w-64 bg-background/80">
-                <SelectValue placeholder="Select workspace" />
+                <SelectValue placeholder="Select organization" />
               </SelectTrigger>
               <SelectContent>
                 {workspaces.map((workspace) => (
@@ -100,8 +130,23 @@ const DashboardHeader = ({
                 ))}
               </SelectContent>
             </Select>
-          </div>
-        ) : null}
+          ) : null}
+          {onCreateOrganization ? (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-9 shrink-0 gap-1"
+              onClick={() => {
+                setCreateOrgError("");
+                setShowCreateOrg(true);
+              }}
+            >
+              <Plus className="w-3.5 h-3.5" />
+              New org
+            </Button>
+          ) : null}
+        </div>
       </div>
 
       <div className="flex items-center gap-2">
@@ -153,6 +198,49 @@ const DashboardHeader = ({
           <LogOut className="w-4 h-4" />
         </Button>
       </div>
+      {showCreateOrg ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div
+            className="w-full max-w-md rounded-xl border border-border bg-card p-6 shadow-lg"
+            role="dialog"
+            aria-labelledby="create-org-title"
+          >
+            <h2 id="create-org-title" className="text-lg font-semibold text-foreground">
+              Create organization
+            </h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              You will be the owner of this workspace. Data stays separate from your other organizations.
+            </p>
+            <form onSubmit={handleCreateOrgSubmit} className="mt-5 space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="new-org-name">Organization name</Label>
+                <Input
+                  id="new-org-name"
+                  value={newOrgName}
+                  onChange={(e) => setNewOrgName(e.target.value)}
+                  placeholder="e.g. Plaksha UG 2026"
+                  autoFocus
+                  required
+                />
+              </div>
+              {createOrgError ? <p className="text-sm text-red-600">{createOrgError}</p> : null}
+              <div className="flex justify-end gap-2">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => setShowCreateOrg(false)}
+                  disabled={isCreatingOrg}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={isCreatingOrg}>
+                  {isCreatingOrg ? "Creating…" : "Create"}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      ) : null}
     </header>
   );
 };

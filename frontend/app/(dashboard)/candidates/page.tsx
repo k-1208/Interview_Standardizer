@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { statusConfig } from "@/lib/mock-data";
-import { getProfile } from "@/api/user";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { getCandidates } from "@/api/candidate";
 import {
   Table,
@@ -20,6 +20,7 @@ import {
 
 export default function CandidateDatabasePage() {
   const router = useRouter();
+  const { selectedWorkspaceId } = useWorkspace();
   const [search, setSearch] = useState("");
   const [boardFilter, setBoardFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -28,21 +29,14 @@ export default function CandidateDatabasePage() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    if (!selectedWorkspaceId) return;
+
     let isMounted = true;
+    setIsLoading(true);
 
     const loadCandidates = async () => {
       try {
-        const profile = await getProfile();
-        const workspaceId =
-          profile?.workspace?.id ||
-          profile?.membership?.workspace?.id ||
-          profile?.position?.workspace?.id;
-
-        if (!workspaceId) {
-          throw new Error("Workspace not found for user");
-        }
-
-        const data = await getCandidates(workspaceId);
+        const data = await getCandidates(selectedWorkspaceId);
         if (isMounted) {
           setCandidates(data.candidates || []);
         }
@@ -60,7 +54,7 @@ export default function CandidateDatabasePage() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [selectedWorkspaceId]);
 
   const filtered = useMemo(() => {
     const list = candidates.filter((c) => {

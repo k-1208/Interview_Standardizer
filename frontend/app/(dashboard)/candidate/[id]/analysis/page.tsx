@@ -5,8 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft, ClipboardList, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getCandidateById, getCandidateTranscriptAnalysis, type TranscriptAnalysisItem } from "@/api/candidate";
-
-const SELECTED_WORKSPACE_KEY = "selected_workspace_id";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
 
 const formatDateTime = (value?: string | null) => {
   if (!value) return "";
@@ -18,27 +17,23 @@ const formatDateTime = (value?: string | null) => {
 export default function InterviewAnalysisPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
+  const { selectedWorkspaceId } = useWorkspace();
   const [candidateName, setCandidateName] = useState("");
   const [analysis, setAnalysis] = useState<TranscriptAnalysisItem | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   useEffect(() => {
+    if (!selectedWorkspaceId) return;
+
     const loadAnalysis = async () => {
       try {
         setLoading(true);
         setError("");
 
-        const workspaceIdValue = window.localStorage.getItem(SELECTED_WORKSPACE_KEY);
-        const workspaceId = workspaceIdValue ? Number(workspaceIdValue) : NaN;
-
-        if (!workspaceId || Number.isNaN(workspaceId)) {
-          throw new Error("Workspace not selected");
-        }
-
         const [candidateData, analysisData] = await Promise.all([
-          getCandidateById(Number(id), workspaceId),
-          getCandidateTranscriptAnalysis(Number(id), workspaceId),
+          getCandidateById(Number(id), selectedWorkspaceId),
+          getCandidateTranscriptAnalysis(Number(id), selectedWorkspaceId),
         ]);
 
         setCandidateName(candidateData.candidate.name);
@@ -52,7 +47,7 @@ export default function InterviewAnalysisPage() {
     };
 
     loadAnalysis();
-  }, [id]);
+  }, [id, selectedWorkspaceId]);
 
   if (loading) {
     return (

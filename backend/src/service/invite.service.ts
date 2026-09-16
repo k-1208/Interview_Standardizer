@@ -1,6 +1,7 @@
 import { prisma } from '../utils/prismaClient.js';
 import { generateToken } from '../utils/helper.js';
 import { sendWorkspaceInvitationEmail } from './email.service.js';
+import { requireWorkspaceInvitePermission } from './workspace.service.js';
 
 type WorkspaceRole = 'super_admin' | 'admin' | 'reviewer';
 
@@ -17,6 +18,8 @@ export const inviteWorkspaceMember = async ({ email, role, workspaceId, invitedB
 	const normalizedEmail = email.trim().toLowerCase();
 	const token = generateToken(32);
 	const expiresAt = new Date(Date.now() + INVITE_EXPIRY_DAYS * 24 * 60 * 60 * 1000);
+
+	await requireWorkspaceInvitePermission(invitedById, workspaceId);
 
 	const [workspace, inviter] = await Promise.all([
 		prisma.workspace.findUnique({ where: { id: workspaceId }, select: { id: true, name: true, slug: true } }),

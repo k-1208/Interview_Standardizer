@@ -41,7 +41,6 @@ const worker = new Worker(
 worker.on("completed", (job) => {
   console.log(`🎉 Job completed: ${job.id}`);
 });
-
 worker.on("failed", (job, err) => {
   console.error(`💥 Job failed: ${job?.id}`, err);
 });

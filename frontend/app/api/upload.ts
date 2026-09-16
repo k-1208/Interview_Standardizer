@@ -15,18 +15,30 @@ export interface UploadPdfResponse {
   resumeKey: string;
 }
 
-export const uploadPdf = async (file: File): Promise<UploadPdfResponse> => {
+const AUTH_TOKEN_KEY = "auth_token";
+
+const getStoredToken = () => {
+  if (typeof window === "undefined") return null;
+  return window.localStorage.getItem(AUTH_TOKEN_KEY);
+};
+
+export const uploadPdf = async (file: File, workspaceId: number): Promise<UploadPdfResponse> => {
   const formData = new FormData();
   formData.append("file", file);
 
-  const response = await fetch(`${BACKEND_BASE_URL}/api/upload/pdf`, {
+  const token = getStoredToken();
+  const response = await fetch(
+    `${BACKEND_BASE_URL}/api/upload/pdf?workspaceId=${encodeURIComponent(String(workspaceId))}`,
+    {
     method: "POST",
     credentials: "include",
     headers: {
       "ngrok-skip-browser-warning": "true",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
     body: formData,
-  });
+    }
+  );
 
   const raw = (await response.json().catch(() => ({}))) as ApiResponse<UploadPdfResponse>;
 

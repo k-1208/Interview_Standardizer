@@ -63,9 +63,10 @@ interface AuthPayload {
 
 export interface RegisterInput {
 	name: string;
-	organizationName: string;
+	organizationName?: string;
 	email: string;
 	password: string;
+	inviteToken?: string;
 }
 
 export interface LoginInput {

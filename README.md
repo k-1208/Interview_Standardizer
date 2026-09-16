@@ -45,7 +45,11 @@ REDIS_PORT=6379
 REDIS_PASSWORD=<redis_password>
 GEMINI_API_KEY=<gemini_api_key>
 RECALL_API_KEY=<recall_api_key>
+JWT_SECRET=<long_random_secret>
+FRONTEND_URL=http://localhost:3000
 ```
+
+Organization signup, team invites, and roles are documented in [docs/ORGANIZATION_ONBOARDING.md](docs/ORGANIZATION_ONBOARDING.md).
 
 ### 3) Run the API server
 ```bash

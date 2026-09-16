@@ -4,7 +4,7 @@ import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowRight, Eye, EyeOff, Shield } from "lucide-react";
 import { getStoredToken, register } from "@/api/auth";
-import { acceptInvite } from "@/api/invite";
+import { acceptInvite, validateInvite } from "@/api/invite";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,6 +22,31 @@ function RegisterPageContent() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [inviteWorkspaceName, setInviteWorkspaceName] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!inviteToken) return;
+    let isMounted = true;
+
+    const loadInvite = async () => {
+      try {
+        const data = await validateInvite(inviteToken);
+        if (!isMounted) return;
+        setEmail(data.email);
+        setInviteWorkspaceName(data.workspace.name);
+      } catch (error) {
+        if (!isMounted) return;
+        const message = error instanceof Error ? error.message : "Invalid invitation";
+        setErrorMessage(message);
+      }
+    };
+
+    loadInvite();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [inviteToken]);
 
   useEffect(() => {
     const token = getStoredToken();
@@ -54,13 +79,12 @@ function RegisterPageContent() {
     setIsLoading(true);
 
     try {
-      const data = await register({ name, organizationName, email, password });
+      const data = await register(
+        inviteToken
+          ? { name, email, password, inviteToken }
+          : { name, organizationName, email, password }
+      );
       console.log("[register] response", data);
-
-      if (inviteToken) {
-        await acceptInvite(inviteToken);
-      }
-
       router.push("/dashboard");
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unable to create account. Please try again.";
@@ -108,8 +132,14 @@ function RegisterPageContent() {
           </div>
 
           <header className="mb-8">
-            <h2 className="text-3xl font-bold text-gray-900">Request access</h2>
-            <p className="text-gray-500 mt-1">Create your account to get started</p>
+            <h2 className="text-3xl font-bold text-gray-900">
+              {inviteWorkspaceName ? `Join ${inviteWorkspaceName}` : "Request access"}
+            </h2>
+            <p className="text-gray-500 mt-1">
+              {inviteWorkspaceName
+                ? "Create your account to accept the workspace invitation"
+                : "Create your account to get started"}
+            </p>
           </header>
 
           <form onSubmit={handleRegister} className="space-y-5">
@@ -138,25 +168,28 @@ function RegisterPageContent() {
                 placeholder="you@company.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                readOnly={!!inviteToken && !!inviteWorkspaceName}
                 className="h-12 bg-white border-gray-300 focus:border-indigo-500 rounded-lg shadow-sm"
                 required
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="organizationName" className="text-sm font-medium text-gray-700">
-                Organization name
-              </Label>
-              <Input
-                id="organizationName"
-                type="text"
-                placeholder="Acme Inc."
-                value={organizationName}
-                onChange={(e) => setOrganizationName(e.target.value)}
-                className="h-12 bg-white border-gray-300 focus:border-indigo-500 rounded-lg shadow-sm"
-                required
-              />
-            </div>
+            {!inviteToken ? (
+              <div className="space-y-2">
+                <Label htmlFor="organizationName" className="text-sm font-medium text-gray-700">
+                  Organization name
+                </Label>
+                <Input
+                  id="organizationName"
+                  type="text"
+                  placeholder="Acme Inc."
+                  value={organizationName}
+                  onChange={(e) => setOrganizationName(e.target.value)}
+                  className="h-12 bg-white border-gray-300 focus:border-indigo-500 rounded-lg shadow-sm"
+                  required
+                />
+              </div>
+            ) : null}
 
             <div className="space-y-2">
               <Label htmlFor="password" className="text-sm font-medium text-gray-700">

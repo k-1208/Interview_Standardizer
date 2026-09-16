@@ -8,12 +8,24 @@ export const getProfile = async (req: Request, res: Response): Promise<void> => 
     return;
   }
 
+  const workspaceId = Number(req.query.workspaceId);
+
+  if (!Number.isFinite(workspaceId) || workspaceId <= 0) {
+    res.status(400).json({ success: false, message: "Valid workspaceId is required" });
+    return;
+  }
+
   try {
-    const data = await getUser(req.user.userId);
+    const data = await getUser(req.user.userId, workspaceId);
     res.status(200).json({ success: true, data });
   } catch (error: any) {
     const message = error?.message || "Failed to load user profile";
-    const statusCode = message === "User not found" ? 404 : 500;
+    const statusCode =
+      message === "User not found"
+        ? 404
+        : message === "User does not have access to this workspace"
+          ? 403
+          : 500;
     res.status(statusCode).json({ success: false, message });
   }
 };

@@ -3,8 +3,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { getProfile } from "@/api/user";
 import { inviteMember } from "@/api/invite";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
 
 export default function SettingsPage() {
+  const { selectedWorkspaceId } = useWorkspace();
   const [profileData, setProfileData] = useState<any>(null);
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
@@ -14,11 +16,13 @@ export default function SettingsPage() {
   const [isInviting, setIsInviting] = useState(false);
 
   useEffect(() => {
+    if (!selectedWorkspaceId) return;
+
     let isMounted = true;
 
     const loadProfile = async () => {
       try {
-        const data = await getProfile();
+        const data = await getProfile(selectedWorkspaceId);
         if (isMounted) {
           setProfileData(data);
         }
@@ -32,7 +36,7 @@ export default function SettingsPage() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [selectedWorkspaceId]);
 
   const user = useMemo(() => {
     const profileUser = profileData?.user;
@@ -41,7 +45,7 @@ export default function SettingsPage() {
     return {
       name: profileUser?.name || "—",
       email: profileUser?.email || "—",
-      organizationName: profileUser?.organizationName || "—",
+      organizationName: profileData?.workspace?.name || profileUser?.organizationName || "—",
       role: role || "—",
       aiQuestionGeneration: true,
     };
@@ -60,14 +64,7 @@ export default function SettingsPage() {
     }));
   }, [profileData]);
 
-  const activeWorkspaceId = useMemo(() => {
-    return (
-      profileData?.workspace?.id ||
-      profileData?.membership?.workspace?.id ||
-      profileData?.position?.workspace?.id ||
-      undefined
-    );
-  }, [profileData]);
+  const activeWorkspaceId = selectedWorkspaceId ?? profileData?.workspace?.id;
 
   const handleInviteSubmit = async () => {
     if (!inviteEmail || !activeWorkspaceId) {

@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 import { uploadPdf } from "@/api/upload";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
 
 type UploadState = "idle" | "file_selected" | "parsing" | "complete";
 
@@ -16,6 +17,7 @@ const parsingSteps = [
 ];
 
 export default function UploadPage() {
+  const { selectedWorkspaceId } = useWorkspace();
   const [state, setState] = useState<UploadState>("idle");
   const [dragOver, setDragOver] = useState(false);
   const [fileName, setFileName] = useState("");
@@ -71,12 +73,17 @@ export default function UploadPage() {
       return;
     }
 
+    if (!selectedWorkspaceId) {
+      setErrorMessage("Select an organization before uploading.");
+      return;
+    }
+
     setState("parsing");
     setProgress(0);
     setCurrentStep(0);
 
     try {
-      await uploadPdf(selectedFile);
+      await uploadPdf(selectedFile, selectedWorkspaceId);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to upload PDF";
       setErrorMessage(message);

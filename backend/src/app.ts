@@ -8,6 +8,7 @@ import aiRoutes from "./routes/ai.routes.js";
 import userRoutes from "./routes/user.routes.js";
 import candidateRoutes from "./routes/candidate.routes.js";
 import webhookRoutes from "./routes/webhook.routes.js";
+import workspaceRoutes from "./routes/workspace.routes.js";
 
 dotenv.config();
 
@@ -66,5 +67,6 @@ app.use("/api/ai", aiRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/candidates", candidateRoutes);
 app.use("/api/webhooks", webhookRoutes);
+app.use("/api/workspaces", workspaceRoutes);
 
 export default app;

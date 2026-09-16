@@ -6,27 +6,42 @@ import KpiCards from "@/components/dashboard/KpiCards";
 import RecentCandidatesTable from "@/components/dashboard/RecentCandidates";
 import { Button } from "@/components/ui/button";
 import { getProfile } from "@/api/user";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
 
 export default function DashboardHome() {
   const router = useRouter();
+  const { selectedWorkspaceId } = useWorkspace();
   const [profileData, setProfileData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    if (!selectedWorkspaceId) return;
+
+    let isMounted = true;
+    setIsLoading(true);
+
     const loadProfile = async () => {
       try {
-        const data = await getProfile();
-        console.log("[dashboard] profile data", data);
-        setProfileData(data);
+        const data = await getProfile(selectedWorkspaceId);
+        if (isMounted) {
+          console.log("[dashboard] profile data", data);
+          setProfileData(data);
+        }
       } catch (error) {
         console.error("[dashboard] failed to load profile", error);
       } finally {
-        setIsLoading(false);
+        if (isMounted) {
+          setIsLoading(false);
+        }
       }
     };
 
     loadProfile();
-  }, []);
+
+    return () => {
+      isMounted = false;
+    };
+  }, [selectedWorkspaceId]);
 
   const memoizedProfileData = useMemo(() => profileData, [profileData]);
 

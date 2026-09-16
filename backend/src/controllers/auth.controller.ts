@@ -1,5 +1,5 @@
 import type { Request, Response } from 'express';
-import { registerUser, loginUser, getMe } from '../service/auth.service.js';
+import { registerUser, registerUserFromInvitation, loginUser, getMe } from '../service/auth.service.js';
 
 const COOKIE_OPTIONS = {
   httpOnly: true,
@@ -9,17 +9,31 @@ const COOKIE_OPTIONS = {
 };
 
 export async function register(req: Request, res: Response): Promise<void> {
-  const { name, organizationName, email, password } = req.body;
+  const { name, organizationName, email, password, inviteToken } = req.body;
 
-  if (!name || !organizationName || !email || !password) {
+  if (!name || !email || !password) {
     console.log('[auth/register] Validation failed: missing required fields');
-    res.status(400).json({ success: false, message: 'name, organizationName, email and password are required' });
+    res.status(400).json({ success: false, message: 'name, email and password are required' });
+    return;
+  }
+
+  if (inviteToken) {
+    if (typeof inviteToken !== 'string') {
+      res.status(400).json({ success: false, message: 'inviteToken must be a string' });
+      return;
+    }
+  } else if (!organizationName) {
+    res.status(400).json({
+      success: false,
+      message: 'organizationName is required when not registering with an invite',
+    });
     return;
   }
 
   try {
-    const startedAt = Date.now();
-    const { user, token } = await registerUser(name, organizationName, email, password);
+    const { user, token } = inviteToken
+      ? await registerUserFromInvitation(name, email, password, inviteToken)
+      : await registerUser(name, organizationName, email, password);
     res.cookie('token', token, COOKIE_OPTIONS);
     res.status(201).json({ success: true, data: { user, token } });
   } catch (err: any) {
@@ -28,7 +42,14 @@ export async function register(req: Request, res: Response): Promise<void> {
       stack: err?.stack,
       code: err?.code,
     });
-    const isClientError = err.message === 'Email already in use';
+    const clientErrors = new Set([
+      'Email already in use',
+      'Email already in use — sign in and accept the invitation',
+      'Invitation not found',
+      'Invitation expired or already used',
+      'Email must match the invitation',
+    ]);
+    const isClientError = clientErrors.has(err.message);
     res.status(isClientError ? 409 : 500).json({ success: false, message: err.message });
   }
 }

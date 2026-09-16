@@ -32,7 +32,7 @@ const getPermissionsByRole = (role: WorkspaceRole) => {
 	};
 };
 
-export async function getUser(userId: number) {
+export async function getUser(userId: number, workspaceId: number) {
 	const user = await prisma.user.findUnique({
 		where: { id: userId },
 		select: {
@@ -61,23 +61,23 @@ export async function getUser(userId: number) {
 		throw new Error('User not found');
 	}
 
-	const membership = user.workspaces[0]
-		? {
-				role: user.workspaces[0].role as WorkspaceRole,
-				joinedAt: user.workspaces[0].joinedAt,
-				workspace: user.workspaces[0].workspace,
-		  }
-		: null;
+	const matched = user.workspaces.find((entry) => entry.workspace.id === workspaceId);
 
-    if(!membership) {
-        throw new Error('User is not part of any workspace');
-    }
+	if (!matched) {
+		throw new Error('User does not have access to this workspace');
+	}
+
+	const membership = {
+		role: matched.role as WorkspaceRole,
+		joinedAt: matched.joinedAt,
+		workspace: matched.workspace,
+	};
 
 	const activeWorkspace = membership.workspace;
 	const permissions = getPermissionsByRole(membership.role);
 
 	const organizationUsers =
-		membership.role === 'super_admin'
+		membership.role === 'super_admin' || membership.role === 'admin'
 			? await prisma.workspaceMember.findMany({
 					where: { workspaceId: activeWorkspace.id },
 					orderBy: { joinedAt: 'asc' },

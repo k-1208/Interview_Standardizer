@@ -21,8 +21,7 @@ import {
 } from "lucide-react";
 import { getCandidateById, type CandidateDetailResponse } from "@/api/candidate";
 import { sendInterviewBot } from "@/api/ai";
-
-const SELECTED_WORKSPACE_KEY = "selected_workspace_id";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
 
 const statusConfig: Record<string, { label: string; className: string }> = {
   pending: { label: "Pending Review", className: "bg-amber-100 text-amber-800" },
@@ -42,6 +41,7 @@ const examLabel = (examName: string) => examName || "Competitive Exam";
 export default function CandidateProfilePage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
+  const { selectedWorkspaceId } = useWorkspace();
   const [candidateData, setCandidateData] = useState<CandidateDetailResponse['candidate'] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -55,19 +55,14 @@ export default function CandidateProfilePage() {
   const [isSendingBot, setIsSendingBot] = useState(false);
 
   useEffect(() => {
+    if (!selectedWorkspaceId) return;
+
     const loadCandidate = async () => {
       try {
         setLoading(true);
         setError("");
 
-        const workspaceIdValue = window.localStorage.getItem(SELECTED_WORKSPACE_KEY);
-        const workspaceId = workspaceIdValue ? Number(workspaceIdValue) : NaN;
-
-        if (!workspaceId || Number.isNaN(workspaceId)) {
-          throw new Error("Workspace not selected");
-        }
-
-        const data = await getCandidateById(Number(id), workspaceId);
+        const data = await getCandidateById(Number(id), selectedWorkspaceId);
         console.log("Fetched candidate data:", data);
         setCandidateData(data.candidate);
       } catch (fetchError) {
@@ -79,7 +74,7 @@ export default function CandidateProfilePage() {
     };
 
     loadCandidate();
-  }, [id]);
+  }, [id, selectedWorkspaceId]);
 
   const candidate = candidateData;
   const status = candidate ? statusConfig[candidate.status] : statusConfig.pending;
