@@ -21,12 +21,20 @@ export interface CandidateListItem {
 	grade10: string;
 	grade12: string;
 	status: string;
+	degree?: string | null;
+	assignedReviewerId?: number | null;
+	assignedReviewer?: {
+		id: number;
+		name: string | null;
+		email?: string | null;
+	} | null;
 	createdAt: string;
 	updatedAt: string;
 }
 
 export interface CandidateListResponse {
 	workspaceId: number;
+	userRole?: string;
 	candidates: CandidateListItem[];
 }
 
@@ -223,5 +231,30 @@ export const getCandidateTranscriptAnalysis = async (candidateId: number, worksp
 	}
 	
 	console.log("mmmmm")
+	return raw.data;
+};
+
+export const assignReviewer = async (candidateId: number, workspaceId: number, reviewerId: number) => {
+	const token = getStoredToken();
+	const response = await fetch(
+		`${BACKEND_BASE_URL}/api/candidates/${candidateId}/assign`,
+		{
+			method: 'POST',
+			credentials: 'include',
+			headers: {
+				'Content-Type': 'application/json',
+				'ngrok-skip-browser-warning': 'true',
+				...(token ? { Authorization: `Bearer ${token}` } : {}),
+			},
+			body: JSON.stringify({ workspaceId, reviewerId }),
+		}
+	);
+
+	const raw = (await response.json().catch(() => ({}))) as ApiResponse<unknown>;
+
+	if (!response.ok || !raw.success) {
+		throw new Error(raw.message || 'Failed to assign reviewer');
+	}
+
 	return raw.data;
 };

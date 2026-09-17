@@ -1,5 +1,10 @@
 import type { Request, Response } from 'express';
-import { getCandidateDetail, getCandidates, getCandidateTranscriptAnalysis } from '../service/candidate.service.js';
+import {
+	getCandidateDetail,
+	getCandidates,
+	getCandidateTranscriptAnalysis,
+	assignCandidateReviewer,
+} from '../service/candidate.service.js';
 
 export async function getCandidateById(req: Request, res: Response): Promise<void> {
 	if (!req.user?.userId) {
@@ -103,6 +108,41 @@ export async function getCandidateTranscript(req: Request, res: Response): Promi
 				: message === 'Candidate not found in this workspace'
 					? 404
 					: 500;
+		res.status(statusCode).json({ success: false, message });
+	}
+}
+
+export async function assignReviewer(req: Request, res: Response): Promise<void> {
+	if (!req.user?.userId) {
+		res.status(401).json({ success: false, message: 'Unauthorized' });
+		return;
+	}
+
+	const candidateId = Number(req.params.id);
+	const { workspaceId, reviewerId } = req.body || {};
+
+	if (!Number.isFinite(candidateId) || candidateId <= 0) {
+		res.status(400).json({ success: false, message: 'Valid candidate id is required' });
+		return;
+	}
+
+	if (!workspaceId || !reviewerId) {
+		res.status(400).json({ success: false, message: 'workspaceId and reviewerId are required' });
+		return;
+	}
+
+	try {
+		const data = await assignCandidateReviewer({
+			userId: req.user.userId,
+			workspaceId: Number(workspaceId),
+			candidateId,
+			reviewerId: Number(reviewerId),
+		});
+
+		res.status(200).json({ success: true, data });
+	} catch (error: any) {
+		const message = error?.message || 'Failed to assign reviewer';
+		const statusCode = message.includes('Only super_admin') ? 403 : 400;
 		res.status(statusCode).json({ success: false, message });
 	}
 }

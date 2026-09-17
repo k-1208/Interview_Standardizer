@@ -15,20 +15,21 @@ export default function DashboardHome() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (!selectedWorkspaceId) return;
+    const workspaceId = Number(selectedWorkspaceId);
+    if (!Number.isFinite(workspaceId) || workspaceId <= 0) return;
 
     let isMounted = true;
     setIsLoading(true);
 
     const loadProfile = async () => {
       try {
-        const data = await getProfile(selectedWorkspaceId);
+        const data = await getProfile(workspaceId);
         if (isMounted) {
-          console.log("[dashboard] profile data", data);
           setProfileData(data);
         }
       } catch (error) {
-        console.error("[dashboard] failed to load profile", error);
+        const message = error instanceof Error ? error.message : String(error);
+        console.error("[dashboard] failed to load profile:", message);
       } finally {
         if (isMounted) {
           setIsLoading(false);

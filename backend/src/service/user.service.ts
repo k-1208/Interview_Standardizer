@@ -98,6 +98,16 @@ export async function getUser(userId: number, workspaceId: number) {
 			  })
 			: [];
 
+	// Reviewers see only their assigned candidates; admins/super_admins see all
+	const isReviewer = membership.role === 'reviewer';
+	const candidateBaseWhere = isReviewer
+		? { workspaceId: activeWorkspace.id, assignedReviewerId: userId }
+		: { workspaceId: activeWorkspace.id };
+
+	const interviewSessionBaseWhere = isReviewer
+		? { candidate: { workspaceId: activeWorkspace.id, assignedReviewerId: userId } }
+		: { candidate: { workspaceId: activeWorkspace.id } };
+
 	const [
 		totalCandidates,
 		pendingCandidates,
@@ -111,18 +121,18 @@ export async function getUser(userId: number, workspaceId: number) {
 		pendingInvitations,
 		recentCandidates,
 	] = await prisma.$transaction([
-		prisma.candidate.count({ where: { workspaceId: activeWorkspace.id } }),
-		prisma.candidate.count({ where: { workspaceId: activeWorkspace.id, status: 'pending' } }),
-		prisma.candidate.count({ where: { workspaceId: activeWorkspace.id, status: 'reviewed' } }),
-		prisma.candidate.count({ where: { workspaceId: activeWorkspace.id, status: 'interviewing' } }),
-		prisma.candidate.count({ where: { workspaceId: activeWorkspace.id, status: 'completed' } }),
-		prisma.interviewSession.count({ where: { candidate: { workspaceId: activeWorkspace.id } } }),
-		prisma.interviewSession.count({ where: { candidate: { workspaceId: activeWorkspace.id }, status: 'scheduled' } }),
-		prisma.interviewSession.count({ where: { candidate: { workspaceId: activeWorkspace.id }, status: 'completed' } }),
-		prisma.interviewSession.count({ where: { candidate: { workspaceId: activeWorkspace.id }, status: 'cancelled' } }),
+		prisma.candidate.count({ where: candidateBaseWhere }),
+		prisma.candidate.count({ where: { ...candidateBaseWhere, status: 'pending' } }),
+		prisma.candidate.count({ where: { ...candidateBaseWhere, status: 'reviewed' } }),
+		prisma.candidate.count({ where: { ...candidateBaseWhere, status: 'interviewing' } }),
+		prisma.candidate.count({ where: { ...candidateBaseWhere, status: 'completed' } }),
+		prisma.interviewSession.count({ where: interviewSessionBaseWhere }),
+		prisma.interviewSession.count({ where: { ...interviewSessionBaseWhere, status: 'scheduled' } }),
+		prisma.interviewSession.count({ where: { ...interviewSessionBaseWhere, status: 'completed' } }),
+		prisma.interviewSession.count({ where: { ...interviewSessionBaseWhere, status: 'cancelled' } }),
 		prisma.invitation.count({ where: { workspaceId: activeWorkspace.id, status: 'pending' } }),
 		prisma.candidate.findMany({
-			where: { workspaceId: activeWorkspace.id },
+			where: { ...candidateBaseWhere },
 			orderBy: { updatedAt: 'desc' },
 			take: 8,
 			select: {

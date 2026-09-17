@@ -1,7 +1,7 @@
 import dotenv from 'dotenv';
 import http from 'http';
 
-try{
+try {
     console.log('Importing app..');
     const appModule = await import('./app.js');
     const app = appModule.default;
@@ -12,19 +12,21 @@ try{
     dotenv.config();
     app.use(morgan.default('dev'));
 
-    const PORT = parseInt(process.env.PORT || '4000');
+    // Initialize BullMQ email worker background process
+    try {
+        console.log('Initializing BullMQ email worker...');
+        await import('./service/queue/email.worker.js');
+        console.log('✅ Email worker initialized');
+    } catch (workerErr) {
+        console.warn('⚠️ Could not initialize background email worker (Redis may be offline):', workerErr);
+    }
 
+    const PORT = parseInt(process.env.PORT || '4000');
     const httpServer = http.createServer(app);
-    
+
     httpServer.listen(PORT, async () => {
-        console.log(`Server is running on http://localhost:${PORT}`);
-        try{
-            console.log('For cron jobs if any, importing scheduler..');
-        }catch(error){
-            console.log('failed in something related to scheduler', error);
-        }
+        console.log(`🚀 Server is running on http://localhost:${PORT}`);
     });
-}catch(error){
+} catch (error) {
     console.error('Error during server startup:', error);
-    
 }

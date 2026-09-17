@@ -3,6 +3,7 @@ import { GEMINI_MODEL, geminiClient } from '../config/gemini.js';
 import { buildTranscriptAnalysisPrompt } from '../utils/prompt.js';
 import { extractJsonFromModelText } from '../utils/helper.js';
 import { prisma } from '../utils/prismaClient.js';
+import { notifyInterviewCompleted } from './emailNotification.service.js';
 
 type CreateMeetingBotInput = {
 	meetingUrl: string;
@@ -230,7 +231,7 @@ export const retrieveBot = async (payload: RecallWebhookPayload): Promise<Recall
 
 	const candidate = await prisma.candidate.findFirst({
 		where: { botId },
-		select: { id: true },
+		select: { id: true, workspaceId: true },
 	});
 	console.log('Associated candidate:', candidate);
 
@@ -309,6 +310,13 @@ export const retrieveBot = async (payload: RecallWebhookPayload): Promise<Recall
 		where: { id: candidate.id },
 		data: { status: 'completed' },
 	});
+
+	// Trigger email notifications to super_admin, admin, and assigned reviewer
+	notifyInterviewCompleted({
+		candidateId: candidate.id,
+		workspaceId: candidate.workspaceId,
+		summarySnippet: analysis.summary,
+	}).catch((err: unknown) => console.error('[retrieveBot] Notification dispatch error:', err));
 
 	return {
 		handled: true,

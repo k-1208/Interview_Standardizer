@@ -131,8 +131,8 @@ export async function registerUserFromInvitation(
 // ─── Login ────────────────────────────────────────────────────────────────────
 
 export async function loginUser(email: string, password: string) {
-  // @ts-ignore — passwordHash will exist after schema update + prisma generate
-  const user = await prisma.user.findUnique({ where: { email } });
+  const normalizedEmail = (email || '').toLowerCase().trim();
+  const user = await prisma.user.findUnique({ where: { email: normalizedEmail } });
   if (!user) {
     throw new Error('Invalid credentials');
   }

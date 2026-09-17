@@ -1,4 +1,5 @@
 import { prisma } from '../utils/prismaClient.js';
+import { notifyCandidateAssigned } from './emailNotification.service.js';
 
 export type GetCandidateDetailInput = {
 	userId: number;
@@ -49,6 +50,14 @@ export async function getCandidateDetail({ userId, workspaceId, candidateId }: G
 			growthAreas: true,
 			skills: true,
 			workspaceId: true,
+			assignedReviewerId: true,
+			assignedReviewer: {
+				select: {
+					id: true,
+					name: true,
+					email: true,
+				},
+			},
 			createdAt: true,
 			updatedAt: true,
 			essays: {
@@ -276,6 +285,7 @@ export async function getCandidates({ userId, workspaceId }: GetCandidatesInput)
 		},
 		select: {
 			id: true,
+			role: true,
 		},
 	});
 
@@ -283,16 +293,31 @@ export async function getCandidates({ userId, workspaceId }: GetCandidatesInput)
 		throw new Error('User does not have access to this workspace');
 	}
 
+	const whereClause: { workspaceId: number; assignedReviewerId?: number } = { workspaceId };
+	if (membership.role === 'reviewer') {
+		whereClause.assignedReviewerId = userId;
+	}
+
 	const candidates = await prisma.candidate.findMany({
-		where: { workspaceId },
+		where: whereClause,
 		orderBy: { updatedAt: 'desc' },
 		select: {
 			id: true,
 			name: true,
+			email: true,
 			board: true,
+			degree: true,
 			grade10: true,
 			grade12: true,
 			status: true,
+			assignedReviewerId: true,
+			assignedReviewer: {
+				select: {
+					id: true,
+					name: true,
+					email: true,
+				},
+			},
 			createdAt: true,
 			updatedAt: true,
 		},
@@ -300,6 +325,71 @@ export async function getCandidates({ userId, workspaceId }: GetCandidatesInput)
 
 	return {
 		workspaceId,
+		userRole: membership.role,
 		candidates,
 	};
 }
+
+export type AssignReviewerInput = {
+	userId: number;
+	workspaceId: number;
+	candidateId: number;
+	reviewerId: number;
+};
+
+export async function assignCandidateReviewer({
+	userId,
+	workspaceId,
+	candidateId,
+	reviewerId,
+}: AssignReviewerInput) {
+	const membership = await prisma.workspaceMember.findFirst({
+		where: { userId, workspaceId },
+		select: { role: true },
+	});
+
+	if (!membership || !['super_admin', 'admin'].includes(membership.role)) {
+		throw new Error('Only super_admin and admin users can assign candidate reviewers');
+	}
+
+	const candidate = await prisma.candidate.findFirst({
+		where: { id: candidateId, workspaceId },
+		select: { id: true },
+	});
+
+	if (!candidate) {
+		throw new Error('Candidate not found in this workspace');
+	}
+
+	const reviewerMembership = await prisma.workspaceMember.findFirst({
+		where: { userId: reviewerId, workspaceId },
+		select: { userId: true },
+	});
+
+	if (!reviewerMembership) {
+		throw new Error('Selected reviewer is not a member of this workspace');
+	}
+
+	const updatedCandidate = await prisma.candidate.update({
+		where: { id: candidateId },
+		data: { assignedReviewerId: reviewerId },
+		select: {
+			id: true,
+			name: true,
+			email: true,
+			assignedReviewer: {
+				select: { id: true, name: true, email: true },
+			},
+		},
+	});
+
+	// Trigger email notification to assigned reviewer asynchronously
+	notifyCandidateAssigned({
+		candidateId,
+		reviewerId,
+		workspaceId,
+	}).catch((err: unknown) => console.error('[assignCandidateReviewer] Failed to trigger notification:', err));
+
+	return updatedCandidate;
+}
+

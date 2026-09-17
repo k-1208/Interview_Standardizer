@@ -16,18 +16,20 @@ export default function SettingsPage() {
   const [isInviting, setIsInviting] = useState(false);
 
   useEffect(() => {
-    if (!selectedWorkspaceId) return;
+    const workspaceId = Number(selectedWorkspaceId);
+    if (!Number.isFinite(workspaceId) || workspaceId <= 0) return;
 
     let isMounted = true;
 
     const loadProfile = async () => {
       try {
-        const data = await getProfile(selectedWorkspaceId);
+        const data = await getProfile(workspaceId);
         if (isMounted) {
           setProfileData(data);
         }
       } catch (error) {
-        console.error("[settings] failed to load profile", error);
+        const message = error instanceof Error ? error.message : String(error);
+        console.error("[settings] failed to load profile:", message);
       }
     };
 
@@ -66,6 +68,10 @@ export default function SettingsPage() {
 
   const activeWorkspaceId = selectedWorkspaceId ?? profileData?.workspace?.id;
 
+  const canInvite = useMemo(() => {
+    return ['super_admin', 'admin'].includes(user.role);
+  }, [user.role]);
+
   const handleInviteSubmit = async () => {
     if (!inviteEmail || !activeWorkspaceId) {
       setInviteError("Email and workspace are required");
@@ -83,7 +89,7 @@ export default function SettingsPage() {
         workspaceId: activeWorkspaceId,
       });
 
-      setInviteSuccess("Invitation sent successfully.");
+      setInviteSuccess("Invitation sent successfully via email queue.");
       setInviteEmail("");
       setInviteRole("reviewer");
     } catch (error) {
@@ -94,14 +100,27 @@ export default function SettingsPage() {
     }
   };
 
+  const getRoleBadge = (role: string) => {
+    const formatted = role.replace('_', ' ').toUpperCase();
+    switch (role) {
+      case 'super_admin':
+        return <span className="px-2.5 py-1 text-[11px] font-semibold bg-amber-500/10 text-amber-600 border border-amber-500/20 rounded-full">{formatted}</span>;
+      case 'admin':
+        return <span className="px-2.5 py-1 text-[11px] font-semibold bg-indigo-500/10 text-indigo-600 border border-indigo-500/20 rounded-full">{formatted}</span>;
+      default:
+        return <span className="px-2.5 py-1 text-[11px] font-semibold bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 rounded-full">{formatted}</span>;
+    }
+  };
+
   return (
     <div className="max-w-2xl mx-auto fade-in space-y-6">
       <div className="bg-card border border-border rounded-2xl p-6 space-y-6" style={{ boxShadow: 'var(--shadow-sm)' }}>
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-base font-semibold text-foreground">Account Settings</h2>
-            <p className="text-xs text-muted-foreground mt-1">Personal details and preferences</p>
+            <p className="text-xs text-muted-foreground mt-1">Personal details, organization, and permissions</p>
           </div>
+          <div>{getRoleBadge(user.role)}</div>
         </div>
 
         <div className="space-y-4">
@@ -128,11 +147,12 @@ export default function SettingsPage() {
             </div>
           </div>
 
-          <div className="flex items-center justify-between py-3">
+          <div className="flex items-center justify-between py-3 border-b border-border/70">
             <div>
-              <p className="text-sm font-medium text-foreground">Role</p>
-              <p className="text-xs text-muted-foreground">{user.role}</p>
+              <p className="text-sm font-medium text-foreground">Workspace Role</p>
+              <p className="text-xs text-muted-foreground capitalize">{user.role.replace('_', ' ')}</p>
             </div>
+            <div>{getRoleBadge(user.role)}</div>
           </div>
 
           <div className="flex items-center justify-between py-3">
@@ -151,28 +171,32 @@ export default function SettingsPage() {
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-base font-semibold text-foreground">Workspace Members</h2>
-            <p className="text-xs text-muted-foreground mt-1">Manage access and roles</p>
+            <p className="text-xs text-muted-foreground mt-1">Manage tenant member access and roles</p>
           </div>
-          <button
-            className="text-xs bg-primary text-primary-foreground px-3 py-2 rounded-md"
-            onClick={() => {
-              setInviteError("");
-              setInviteSuccess("");
-              setShowInviteModal(true);
-            }}
-          >
-            Invite Member
-          </button>
+          {canInvite ? (
+            <button
+              className="text-xs bg-primary text-primary-foreground font-medium px-3.5 py-2 rounded-lg hover:opacity-90 transition-opacity"
+              onClick={() => {
+                setInviteError("");
+                setInviteSuccess("");
+                setShowInviteModal(true);
+              }}
+            >
+              + Invite Member
+            </button>
+          ) : (
+            <span className="text-[11px] text-muted-foreground bg-muted/50 px-2.5 py-1 rounded-md">Role: Read-only</span>
+          )}
         </div>
 
         <div className="mt-5 space-y-3">
           {members.length === 0 ? (
             <div className="rounded-lg border border-border/70 bg-background p-4 text-xs text-muted-foreground">
-              Workspace members are not available for your role.
+              Workspace members are not available or restricted for your role.
             </div>
           ) : (
             members.map((member) => (
-              <div key={member.id} className="flex items-center justify-between p-3 rounded-lg border border-border/70 bg-background">
+              <div key={member.id} className="flex items-center justify-between p-3.5 rounded-xl border border-border/70 bg-background">
                 <div className="flex items-center space-x-3">
                   <div className="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-white text-xs font-semibold">
                     {member.name
@@ -188,21 +212,23 @@ export default function SettingsPage() {
                 </div>
 
                 <div className="flex items-center space-x-4">
-                  <div className="text-right">
-                    <p className="text-xs text-muted-foreground capitalize">{member.role.replace('_', ' ')}</p>
-                    <p className="text-xs text-muted-foreground">Joined {member.joinedAt}</p>
+                  <div className="text-right flex items-center gap-2">
+                    {getRoleBadge(member.role)}
+                    <span className="text-xs text-muted-foreground hidden sm:inline">Joined {member.joinedAt}</span>
                   </div>
 
-                  <details className="relative">
-                    <summary className="list-none cursor-pointer text-xs text-primary font-medium hover:underline">
-                      Actions
-                    </summary>
-                    <div className="absolute right-0 mt-2 w-40 rounded-lg border border-border bg-card shadow-sm">
-                      <button className="w-full text-left px-3 py-2 text-xs text-foreground hover:bg-muted">View Profile</button>
-                      <button className="w-full text-left px-3 py-2 text-xs text-foreground hover:bg-muted">Change Role</button>
-                      <button className="w-full text-left px-3 py-2 text-xs text-red-600 hover:bg-muted">Remove</button>
-                    </div>
-                  </details>
+                  {canInvite ? (
+                    <details className="relative">
+                      <summary className="list-none cursor-pointer text-xs text-primary font-medium hover:underline">
+                        Actions
+                      </summary>
+                      <div className="absolute right-0 mt-2 w-40 rounded-lg border border-border bg-card shadow-lg z-10 py-1">
+                        <button className="w-full text-left px-3 py-2 text-xs text-foreground hover:bg-muted">View Profile</button>
+                        <button className="w-full text-left px-3 py-2 text-xs text-foreground hover:bg-muted">Change Role</button>
+                        <button className="w-full text-left px-3 py-2 text-xs text-red-600 hover:bg-muted">Remove</button>
+                      </div>
+                    </details>
+                  ) : null}
                 </div>
               </div>
             ))
@@ -211,68 +237,68 @@ export default function SettingsPage() {
       </div>
 
       {showInviteModal ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-md rounded-2xl bg-card border border-border p-6" style={{ boxShadow: 'var(--shadow-sm)' }}>
-            <div className="flex items-center justify-between">
-              <h3 className="text-base font-semibold text-foreground">Invite Member</h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
+          <div className="w-full max-w-md rounded-2xl bg-card border border-border p-6 shadow-xl space-y-4">
+            <div className="flex items-center justify-between border-b border-border pb-3">
+              <h3 className="text-base font-semibold text-foreground">Invite Workspace Member</h3>
               <button
                 className="text-xs text-muted-foreground hover:text-foreground"
                 onClick={() => setShowInviteModal(false)}
               >
-                Close
+                ✕
               </button>
             </div>
 
-            <div className="mt-4 space-y-4">
+            <div className="space-y-4">
               <div>
-                <p className="text-xs font-medium text-foreground">Email</p>
+                <label className="text-xs font-medium text-foreground block mb-1">Email Address</label>
                 <input
                   type="email"
-                  placeholder="user@org.edu"
-                  className="mt-1 w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground"
+                  placeholder="reviewer@organization.com"
+                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-hidden focus:ring-1 focus:ring-primary"
                   value={inviteEmail}
                   onChange={(e) => setInviteEmail(e.target.value)}
                 />
               </div>
 
               <div>
-                <p className="text-xs font-medium text-foreground">Role</p>
+                <label className="text-xs font-medium text-foreground block mb-1">Workspace Role</label>
                 <select
-                  className="mt-1 w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground"
+                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-hidden focus:ring-1 focus:ring-primary"
                   value={inviteRole}
                   onChange={(e) => setInviteRole(e.target.value)}
                 >
-                  <option value="admin">admin</option>
-                  <option value="reviewer">reviewer</option>
+                  <option value="reviewer">Reviewer (Evaluates assigned candidates)</option>
+                  <option value="admin">Admin (Manages candidates & invites team)</option>
                 </select>
               </div>
             </div>
 
             {inviteError ? (
-              <div className="mt-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+              <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-xs text-red-700">
                 {inviteError}
               </div>
             ) : null}
 
             {inviteSuccess ? (
-              <div className="mt-4 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-700">
+              <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-xs text-emerald-700">
                 {inviteSuccess}
               </div>
             ) : null}
 
-            <div className="mt-6 flex items-center justify-end space-x-2">
+            <div className="pt-2 flex items-center justify-end space-x-2">
               <button
-                className="text-xs text-muted-foreground hover:text-foreground"
+                className="text-xs px-3.5 py-2 rounded-lg border border-border hover:bg-muted text-muted-foreground hover:text-foreground"
                 onClick={() => setShowInviteModal(false)}
               >
                 Cancel
               </button>
               <button
-                className="text-xs bg-primary text-primary-foreground px-3 py-2 rounded-md"
+                className="text-xs bg-primary text-primary-foreground font-medium px-4 py-2 rounded-lg hover:opacity-90 disabled:opacity-50"
                 onClick={handleInviteSubmit}
                 disabled={isInviting}
               >
-                {isInviting ? "Sending..." : "Send Invite"}
+                {isInviting ? "Sending Email..." : "Send Invite"}
               </button>
             </div>
           </div>
