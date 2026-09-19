@@ -1,10 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ElementType, type ReactNode } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
   GraduationCap,
   Code2,
@@ -22,43 +20,61 @@ import {
 import { getCandidateById, type CandidateDetailResponse } from "@/api/candidate";
 import { sendInterviewBot } from "@/api/ai";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
-
-const statusConfig: Record<string, { label: string; className: string; dotClass: string }> = {
-  pending: {
-    label: "Pending Review",
-    className: "bg-amber-500/10 text-amber-700 dark:text-amber-300 ring-1 ring-inset ring-amber-500/20",
-    dotClass: "bg-amber-500",
-  },
-  reviewed: {
-    label: "Interview Ready",
-    className: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 ring-1 ring-inset ring-emerald-500/20",
-    dotClass: "bg-emerald-500",
-  },
-  interviewing: {
-    label: "Interviewing",
-    className: "bg-violet-500/10 text-violet-700 dark:text-violet-300 ring-1 ring-inset ring-violet-500/20",
-    dotClass: "bg-violet-500",
-  },
-  completed: {
-    label: "Completed",
-    className: "bg-sky-500/10 text-sky-700 dark:text-sky-300 ring-1 ring-inset ring-sky-500/20",
-    dotClass: "bg-sky-500",
-  },
-};
+import { DataPanel } from "@/components/ui/data-panel";
+import { InitialsAvatar } from "@/components/ui/initials-avatar";
+import { StatusLabel } from "@/components/ui/status-label";
+import { candidateMeta } from "@/lib/display";
 
 const academicOrder = ["9th", "10th", "11th", "12th"];
+const academicLabel = (standard: string) => standard || "Academic record";
+const examLabel = (examName: string) => examName || "Competitive exam";
 
-const academicLabel = (standard: string) => standard || "Academic Record";
+function ProfileSection({
+  title,
+  icon: Icon,
+  children,
+  className,
+}: {
+  title: string;
+  icon: ElementType;
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <DataPanel className={className}>
+      <div className="flex items-center gap-2 px-5 py-3.5 border-b border-border">
+        <Icon className="w-4 h-4 text-muted-foreground" strokeWidth={1.5} />
+        <h3 className="text-sm font-semibold text-foreground">{title}</h3>
+      </div>
+      <div className="p-5">{children}</div>
+    </DataPanel>
+  );
+}
 
-const examLabel = (examName: string) => examName || "Competitive Exam";
+function EmptyText({ children }: { children: ReactNode }) {
+  return <p className="text-sm text-muted-foreground">{children}</p>;
+}
 
+function BulletList({ items, empty }: { items: string[]; empty: string }) {
+  if (!items.length) return <EmptyText>{empty}</EmptyText>;
 
+  return (
+    <ul className="space-y-2">
+      {items.map((item, index) => (
+        <li key={`${item}-${index}`} className="text-sm text-foreground flex items-start gap-2.5">
+          <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-muted-foreground/50 shrink-0" />
+          <span>{item}</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
 
 export default function CandidateProfilePage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const { selectedWorkspaceId } = useWorkspace();
-  const [candidateData, setCandidateData] = useState<CandidateDetailResponse['candidate'] | null>(null);
+  const [candidateData, setCandidateData] = useState<CandidateDetailResponse["candidate"] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [expandedExamIds, setExpandedExamIds] = useState<number[]>([]);
@@ -77,9 +93,7 @@ export default function CandidateProfilePage() {
       try {
         setLoading(true);
         setError("");
-
         const data = await getCandidateById(Number(id), selectedWorkspaceId);
-        console.log("Fetched candidate data:", data);
         setCandidateData(data.candidate);
       } catch (fetchError) {
         const message = fetchError instanceof Error ? fetchError.message : "Failed to load candidate";
@@ -93,14 +107,12 @@ export default function CandidateProfilePage() {
   }, [id, selectedWorkspaceId]);
 
   const candidate = candidateData;
-  const status = candidate ? statusConfig[candidate.status] : statusConfig.pending;
   const academicRecords = useMemo(() => {
     if (!candidate) return [];
 
     return [...candidate.academicRecords].sort((left, right) => {
       const leftIndex = academicOrder.indexOf(left.standard);
       const rightIndex = academicOrder.indexOf(right.standard);
-
       if (leftIndex !== -1 && rightIndex !== -1) return leftIndex - rightIndex;
       if (leftIndex !== -1) return -1;
       if (rightIndex !== -1) return 1;
@@ -116,12 +128,12 @@ export default function CandidateProfilePage() {
 
   if (loading) {
     return (
-      <div className="space-y-6 fade-in">
-        <div className="h-10 w-44 rounded-md bg-secondary animate-pulse" />
-        <div className="h-32 rounded-xl bg-card border border-border animate-pulse" />
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="h-80 rounded-xl bg-card border border-border animate-pulse" />
-          <div className="h-80 rounded-xl bg-card border border-border animate-pulse" />
+      <div className="space-y-5 fade-in">
+        <div className="h-8 w-36 rounded-md bg-muted animate-pulse" />
+        <div className="h-36 rounded-2xl bg-card border border-border animate-pulse" />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          <div className="h-72 rounded-2xl bg-card border border-border animate-pulse" />
+          <div className="h-72 rounded-2xl bg-card border border-border animate-pulse" />
         </div>
       </div>
     );
@@ -131,57 +143,51 @@ export default function CandidateProfilePage() {
     return (
       <div className="space-y-4 fade-in">
         <Button variant="ghost" size="sm" onClick={() => router.push("/candidates")} className="gap-1.5 text-muted-foreground">
-          <ArrowLeft className="w-4 h-4" /> Back to Database
+          <ArrowLeft className="w-4 h-4" /> Back to candidates
         </Button>
-        <div className="rounded-xl border border-border bg-card p-6 text-sm text-muted-foreground">
-          {error || "Candidate not found"}
-        </div>
+        <DataPanel className="p-6 text-sm text-muted-foreground">{error || "Candidate not found"}</DataPanel>
       </div>
     );
   }
 
+  const meta = candidateMeta(candidate.degree, candidate.board);
+  const insights =
+    candidate.aiSummary?.keyInsights && candidate.aiSummary.keyInsights.length > 0
+      ? candidate.aiSummary.keyInsights
+      : candidate.strengths;
+  const growth =
+    candidate.aiSummary?.growthAreas && candidate.aiSummary.growthAreas.length > 0
+      ? candidate.aiSummary.growthAreas
+      : candidate.growthAreas;
+  const selectedRecord = academicRecords.find((record) => record.id === selectedAcademicId);
+
   return (
-    <div className="space-y-6 fade-in">
-      {/* Back */}
-      <Button variant="ghost" size="sm" onClick={() => router.push("/candidates")} className="gap-1.5 text-muted-foreground">
-        <ArrowLeft className="w-4 h-4" /> Back to Database
+    <div className="space-y-5 fade-in">
+      <Button variant="ghost" size="sm" onClick={() => router.push("/candidates")} className="gap-1.5 text-muted-foreground -ml-2">
+        <ArrowLeft className="w-4 h-4" /> Back to candidates
       </Button>
 
-      {/* Profile Summary Card */}
-      <div className="bg-card border border-border rounded-xl p-6 flex flex-col sm:flex-row items-start gap-5" style={{ boxShadow: "var(--shadow-sm)" }}>
-        <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center text-xl font-bold text-primary flex-shrink-0">
-          {candidate.name.split(" ").map((namePart: string) => namePart[0]).join("")}
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-3 mb-1">
-            <h2 className="text-xl font-semibold text-foreground">{candidate.name}</h2>
-            <span className={`status-badge ${status.className}`}>
-              <span className={`h-1.5 w-1.5 rounded-full ${status.dotClass}`} />
-              {status.label}
-            </span>
+      <DataPanel>
+        <div className="p-5 flex flex-col gap-5">
+          <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-5">
+            <div className="flex items-start gap-4 min-w-0">
+              <InitialsAvatar name={candidate.name} size="md" className="h-12 w-12 text-sm" />
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                  <h1 className="text-xl font-semibold tracking-tight text-foreground">{candidate.name}</h1>
+                  <StatusLabel status={candidate.status} />
+                </div>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {[meta, candidate.gpa ? `GPA ${candidate.gpa}` : null].filter(Boolean).join(" · ") || "Profile details unavailable"}
+                </p>
+                <p className="text-sm text-muted-foreground mt-0.5">{candidate.email}</p>
+              </div>
+            </div>
           </div>
-          <p className="text-sm text-muted-foreground">{candidate.degree} · {candidate.board} · GPA {candidate.gpa}</p>
-          <p className="text-xs text-muted-foreground mt-1">{candidate.email}</p>
-        </div>
-        <div className="flex flex-col gap-2 flex-shrink-0">
-          <div className="flex flex-wrap gap-2">
-            <Button variant="outline" onClick={() => router.push(`/candidate/${id}/history`)} className="gap-1.5">
-              <History className="w-4 h-4" /> History
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => router.push(`/candidate/${id}/analysis`)}
-              className="gap-1.5"
-            >
-              <ClipboardList className="w-4 h-4" /> Interview Analysis
-            </Button>
-            <Button variant="outline" onClick={() => router.push("/export")} className="gap-1.5">
-              <FileDown className="w-4 h-4" /> Export
-            </Button>
-          </div>
-          <div className="flex flex-wrap gap-2">
+
+          <div className="flex flex-wrap gap-2 pt-4 border-t border-border">
             <Button onClick={() => router.push(`/candidate/${id}/questions?generate=1`)} className="gap-1.5">
-              <MessageSquare className="w-4 h-4" /> Generate Questions
+              <MessageSquare className="w-4 h-4" /> Generate questions
             </Button>
             <Button
               variant="outline"
@@ -192,343 +198,287 @@ export default function CandidateProfilePage() {
               }}
               className="gap-1.5"
             >
-              <Sparkles className="w-4 h-4" /> Send Bot to Meeting
+              <Sparkles className="w-4 h-4" /> Send bot
+            </Button>
+            <Button variant="outline" onClick={() => router.push(`/candidate/${id}/analysis`)} className="gap-1.5">
+              <ClipboardList className="w-4 h-4" /> Interview analysis
+            </Button>
+            <Button variant="ghost" onClick={() => router.push(`/candidate/${id}/history`)} className="gap-1.5">
+              <History className="w-4 h-4" /> History
+            </Button>
+            <Button variant="ghost" onClick={() => router.push("/export")} className="gap-1.5">
+              <FileDown className="w-4 h-4" /> Export
             </Button>
           </div>
         </div>
-      </div>
+      </DataPanel>
 
-      {/* Academic Performance - Full Width */}
-      <section className="bg-card border border-border rounded-xl p-6" style={{ boxShadow: "var(--shadow-sm)" }}>
-        <h3 className="text-sm font-semibold text-foreground flex items-center gap-2 mb-4">
-          <GraduationCap className="w-4 h-4 text-primary" /> Academic Performance
-        </h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+      <ProfileSection title="Academic performance" icon={GraduationCap}>
+        {academicRecords.length === 0 ? (
+          <EmptyText>No academic records found.</EmptyText>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
             {academicRecords.map((record) => {
               const isSelected = selectedAcademicId === record.id;
-
               return (
-                <div key={record.id} className="rounded-lg border border-border/50 bg-secondary/35 overflow-hidden">
-                  <button
-                    type="button"
-                    onClick={() => setSelectedAcademicId(isSelected ? null : record.id)}
-                    className="w-full p-4 text-left flex flex-col gap-2 hover:bg-secondary/60 transition-colors"
-                  >
-                    <div className="flex items-center justify-between">
-                      <p className="text-xs text-muted-foreground">{academicLabel(record.standard)}</p>
-                      <div className="flex items-center gap-2 text-muted-foreground">
-                        <span className="text-xs font-medium">View</span>
-                        {isSelected ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                      </div>
-                    </div>
-                    <div>
-                      <p className="text-2xl font-semibold text-foreground">{record.obtainedPercentageOrCgpa}</p>
-                      <p className="text-xs text-muted-foreground mt-1">{record.markingScheme}</p>
-                    </div>
-                  </button>
-                </div>
+                <button
+                  key={record.id}
+                  type="button"
+                  onClick={() => setSelectedAcademicId(isSelected ? null : record.id)}
+                  className={`rounded-xl bg-muted p-4 text-left transition-colors ${
+                    isSelected ? "ring-1 ring-border" : "hover:bg-background/50"
+                  }`}
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-xs text-muted-foreground">{academicLabel(record.standard)}</p>
+                    {isSelected ? (
+                      <ChevronUp className="w-4 h-4 text-muted-foreground" />
+                    ) : (
+                      <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                    )}
+                  </div>
+                  <p className="text-2xl font-semibold tracking-tight text-foreground mt-3">
+                    {record.obtainedPercentageOrCgpa || "—"}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">{record.markingScheme || "Score"}</p>
+                </button>
               );
             })}
           </div>
+        )}
 
-          {/* Full-width detailed table for selected record */}
-          {selectedAcademicId ? (
-            <div className="mt-4 rounded-md border border-border/60 bg-card p-4 shadow-sm overflow-x-auto">
-              {(() => {
-                const rec = academicRecords.find((r) => r.id === selectedAcademicId);
-                if (!rec) return null;
+        {selectedRecord ? (
+          <div className="mt-4 rounded-xl bg-muted p-4">
+            <div className="flex items-start justify-between gap-3 mb-3">
+              <div>
+                <p className="text-sm font-semibold text-foreground">
+                  {academicLabel(selectedRecord.standard)}
+                  {selectedRecord.schoolName ? ` · ${selectedRecord.schoolName}` : ""}
+                </p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {[selectedRecord.board, selectedRecord.yearOfPassing, selectedRecord.markingScheme]
+                    .filter(Boolean)
+                    .join(" · ")}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedAcademicId(null)}
+                className="text-xs text-muted-foreground hover:text-foreground"
+              >
+                Close
+              </button>
+            </div>
+            {selectedRecord.subjects.length === 0 ? (
+              <EmptyText>No subject breakdown available.</EmptyText>
+            ) : (
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-left text-[11px] uppercase tracking-wider text-muted-foreground">
+                    <th className="pb-2 font-medium w-10">#</th>
+                    <th className="pb-2 font-medium">Subject</th>
+                    <th className="pb-2 font-medium">Maximum</th>
+                    <th className="pb-2 font-medium">Obtained</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {selectedRecord.subjects.map((subject, index) => (
+                    <tr key={subject.id} className="border-t border-border/70">
+                      <td className="py-2 text-muted-foreground">{index + 1}</td>
+                      <td className="py-2 text-foreground">{subject.subject}</td>
+                      <td className="py-2 text-muted-foreground">{subject.maximumMarksOrGrade}</td>
+                      <td className="py-2 text-foreground font-medium">{subject.obtainedMarksOrGrade}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        ) : null}
+      </ProfileSection>
 
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        <ProfileSection title="Competitive exams" icon={ClipboardList}>
+          {candidate.competitiveExams.length === 0 ? (
+            <EmptyText>No competitive exam records found.</EmptyText>
+          ) : (
+            <div className="space-y-3">
+              {candidate.competitiveExams.map((exam) => {
+                const isExpanded = expandedExamIds.includes(exam.id);
                 return (
-                  <div>
-                    <div className="flex items-center justify-between mb-3">
+                  <div key={exam.id} className="rounded-xl bg-muted overflow-hidden">
+                    <button
+                      type="button"
+                      onClick={() => toggleExamRecord(exam.id)}
+                      className="w-full p-4 text-left flex items-start justify-between gap-3"
+                    >
                       <div>
-                        <p className="text-sm font-semibold text-foreground">{academicLabel(rec.standard)} — {rec.schoolName}</p>
-                        <p className="text-xs text-muted-foreground">{rec.board} · {rec.yearOfPassing} · {rec.markingScheme}</p>
+                        <p className="text-xs text-muted-foreground">{examLabel(exam.examName)}</p>
+                        <p className="text-lg font-semibold text-foreground mt-1">{exam.totalScore || "—"}</p>
+                        <p className="text-xs text-muted-foreground mt-1">{exam.status || "Status unavailable"}</p>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => setSelectedAcademicId(null)}
-                        className="text-xs text-muted-foreground hover:text-foreground"
-                      >
-                        Close
-                      </button>
-                    </div>
-
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead className="pl-4">#</TableHead>
-                          <TableHead>Subject</TableHead>
-                          <TableHead>Maximum Marks/Grade</TableHead>
-                          <TableHead>Obtained Marks/Grade</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {rec.subjects.map((subject, idx) => (
-                          <TableRow key={subject.id} className={idx % 2 === 0 ? "bg-transparent" : "bg-muted/5"}>
-                            <TableCell className="pl-4 text-muted-foreground">{idx + 1}</TableCell>
-                            <TableCell className="font-medium text-foreground">{subject.subject}</TableCell>
-                            <TableCell className="text-muted-foreground">{subject.maximumMarksOrGrade}</TableCell>
-                            <TableCell className="text-foreground font-semibold">{subject.obtainedMarksOrGrade}</TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
+                      {isExpanded ? (
+                        <ChevronUp className="w-4 h-4 text-muted-foreground mt-0.5" />
+                      ) : (
+                        <ChevronDown className="w-4 h-4 text-muted-foreground mt-0.5" />
+                      )}
+                    </button>
+                    {isExpanded ? (
+                      <div className="px-4 pb-4 space-y-3">
+                        <div className="grid grid-cols-2 gap-3 text-sm">
+                          {[
+                            ["Status", exam.status],
+                            ["Result", exam.result],
+                            ["Test date", exam.testDate],
+                            ["Roll number", exam.rollNumber],
+                          ].map(([label, value]) => (
+                            <div key={label}>
+                              <p className="text-xs text-muted-foreground">{label}</p>
+                              <p className="mt-0.5 text-foreground">{value || "—"}</p>
+                            </div>
+                          ))}
+                        </div>
+                        {exam.sectionScores.length > 0 ? (
+                          <table className="w-full text-sm">
+                            <thead>
+                              <tr className="text-left text-[11px] uppercase tracking-wider text-muted-foreground">
+                                <th className="pb-2 font-medium">Section</th>
+                                <th className="pb-2 font-medium">Score</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {exam.sectionScores.map((section) => (
+                                <tr key={section.id} className="border-t border-border/70">
+                                  <td className="py-2 text-foreground">{section.section}</td>
+                                  <td className="py-2 text-foreground">{section.score}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        ) : null}
+                      </div>
+                    ) : null}
                   </div>
                 );
-              })()}
+              })}
             </div>
-          ) : null}
-        </section>
+          )}
+        </ProfileSection>
 
-      {/* Two-column grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Left Column */}
-        <div className="space-y-6">
-          {/* Competitive Exams */}
-          <section className="bg-card border border-border rounded-xl p-6" style={{ boxShadow: "var(--shadow-sm)" }}>
-            <h3 className="text-sm font-semibold text-foreground flex items-center gap-2 mb-4">
-              <ClipboardList className="w-4 h-4 text-primary" /> Competitive Exams
-            </h3>
-            <div className="space-y-3">
-              {candidate.competitiveExams.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No competitive exam records found.</p>
-              ) : (
-                candidate.competitiveExams.map((exam) => {
-                  const isExpanded = expandedExamIds.includes(exam.id);
-
-                  return (
-                    <div key={exam.id} className="rounded-lg border border-border/50 bg-secondary/35 overflow-hidden">
-                      <button
-                        type="button"
-                        onClick={() => toggleExamRecord(exam.id)}
-                        className="w-full p-3 text-left flex items-start justify-between gap-3 hover:bg-secondary/60 transition-colors"
-                      >
-                        <div>
-                          <p className="text-xs text-muted-foreground">{examLabel(exam.examName)}</p>
-                          <p className="text-lg font-semibold text-foreground">{exam.totalScore || "-"}</p>
-                          <p className="text-[11px] text-muted-foreground mt-0.5">{exam.status || "Status unavailable"}</p>
-                        </div>
-                        <div className="flex items-center gap-2 text-muted-foreground mt-0.5">
-                          <span className="text-xs font-medium">Details</span>
-                          {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                        </div>
-                      </button>
-                      {isExpanded ? (
-                        <div className="border-t border-border/50 p-3 space-y-3">
-                          <div className="grid grid-cols-2 gap-2 text-xs">
-                            <div>
-                              <p className="text-muted-foreground">Status</p>
-                              <p className="font-medium text-foreground">{exam.status || "-"}</p>
-                            </div>
-                            <div>
-                              <p className="text-muted-foreground">Result</p>
-                              <p className="font-medium text-foreground">{exam.result || "-"}</p>
-                            </div>
-                            <div>
-                              <p className="text-muted-foreground">Test Date</p>
-                              <p className="font-medium text-foreground">{exam.testDate || "-"}</p>
-                            </div>
-                            <div>
-                              <p className="text-muted-foreground">Roll Number</p>
-                              <p className="font-medium text-foreground">{exam.rollNumber || "-"}</p>
-                            </div>
-                          </div>
-
-                          <div className="rounded-md border border-border/60 bg-card">
-                            <Table>
-                              <TableHeader>
-                                <TableRow>
-                                  <TableHead className="pl-4">Section</TableHead>
-                                  <TableHead>Score</TableHead>
-                                </TableRow>
-                              </TableHeader>
-                              <TableBody>
-                                {exam.sectionScores.map((section) => (
-                                  <TableRow key={section.id}>
-                                    <TableCell className="pl-4 font-medium text-foreground">{section.section}</TableCell>
-                                    <TableCell className="text-foreground">{section.score}</TableCell>
-                                  </TableRow>
-                                ))}
-                              </TableBody>
-                            </Table>
-                          </div>
-                        </div>
-                      ) : null}
-                    </div>
-                  );
-                })
-              )}
+        <ProfileSection title="AI summary" icon={Sparkles}>
+          <p className="text-sm text-foreground/80 leading-relaxed">
+            {candidate.aiSummary?.summary || candidate.summary || "No summary available yet."}
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mt-5">
+            <div>
+              <h4 className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-2">Key insights</h4>
+              <BulletList items={insights} empty="No insights yet." />
             </div>
-          </section>
-
-          {/* Activities & Leadership */}
-          <section className="bg-card border border-border rounded-xl p-6" style={{ boxShadow: "var(--shadow-sm)" }}>
-            <h3 className="text-sm font-semibold text-foreground flex items-center gap-2 mb-4">
-              <Trophy className="w-4 h-4 text-yellow-500" /> Activities & Leadership
-            </h3>
-            <ul className="space-y-2 mb-4">
-              {candidate.activities.map((a, i) => (
-                <li key={i} className="text-sm text-foreground/90 flex items-start gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-primary mt-1.5 flex-shrink-0" />
-                  {a}
-                </li>
-              ))}
-            </ul>
-            <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Achievements</h4>
-            <ul className="space-y-2">
-              {candidate.achievements.map((a, i) => (
-                <li key={i} className="text-sm text-foreground/90 flex items-start gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-yellow-500 mt-1.5 flex-shrink-0" />
-                  {a}
-                </li>
-              ))}
-            </ul>
-          </section>
-        </div>
-
-        {/* Right Column */}
-        <div className="space-y-6">
-          {/* AI Summary */}
-          <section className="bg-card border border-border border-l-4 border-l-yellow-400 rounded-xl p-6" style={{ boxShadow: "var(--shadow-sm)" }}>
-            <h3 className="text-sm font-semibold text-foreground flex items-center gap-2 mb-4">
-              <Sparkles className="w-4 h-4 text-yellow-500" /> AI Summary
-            </h3>
-            <p className="text-sm text-foreground/80 leading-relaxed mb-4">{candidate.aiSummary?.summary ?? candidate.summary}</p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <h4 className="text-xs font-semibold text-green-600 mb-2">Key Insights</h4>
-                <ul className="space-y-1.5">
-                  {(candidate.aiSummary?.keyInsights && candidate.aiSummary.keyInsights.length > 0
-                    ? candidate.aiSummary.keyInsights
-                    : candidate.strengths
-                  ).map((s, i) => (
-                    <li key={i} className="text-xs text-foreground/80 flex items-start gap-1.5">
-                      <span className="w-1 h-1 rounded-full bg-green-500 mt-1.5 flex-shrink-0" />
-                      {s}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-              <div>
-                <h4 className="text-xs font-semibold text-yellow-600 mb-2">Growth Areas</h4>
-                <ul className="space-y-1.5">
-                  {(candidate.aiSummary?.growthAreas && candidate.aiSummary.growthAreas.length > 0
-                    ? candidate.aiSummary.growthAreas
-                    : candidate.growthAreas
-                  ).map((g, i) => (
-                    <li key={i} className="text-xs text-foreground/80 flex items-start gap-1.5">
-                      <span className="w-1 h-1 rounded-full bg-yellow-500 mt-1.5 flex-shrink-0" />
-                      {g}
-                    </li>
-                  ))}
-                </ul>
-              </div>
+            <div>
+              <h4 className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-2">Growth areas</h4>
+              <BulletList items={growth} empty="No growth areas yet." />
             </div>
-          </section>
+          </div>
+        </ProfileSection>
 
-          {/* Skills */}
-          <section className="bg-card border border-border rounded-xl p-6" style={{ boxShadow: "var(--shadow-sm)" }}>
-            <h3 className="text-sm font-semibold text-foreground flex items-center gap-2 mb-4">
-              <Code2 className="w-4 h-4 text-primary" /> Technical Skills
-            </h3>
+        <ProfileSection title="Activities & leadership" icon={Trophy}>
+          <BulletList items={candidate.activities} empty="No activities listed." />
+          <h4 className="text-xs font-medium uppercase tracking-wider text-muted-foreground mt-5 mb-2">Achievements</h4>
+          <BulletList items={candidate.achievements} empty="No achievements listed." />
+        </ProfileSection>
+
+        <ProfileSection title="Technical skills" icon={Code2}>
+          {candidate.skills.length === 0 ? (
+            <EmptyText>No skills listed.</EmptyText>
+          ) : (
             <div className="flex flex-wrap gap-2">
               {candidate.skills.map((skill) => (
-                <Badge
+                <span
                   key={skill}
-                  variant="secondary"
-                  className="text-xs font-medium px-2.5 py-1 bg-primary/10 text-primary border border-primary/20 hover:bg-primary/15 transition-colors"
+                  className="inline-flex items-center rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-foreground"
                 >
                   {skill}
-                </Badge>
+                </span>
               ))}
             </div>
-          </section>
-        </div>
+          )}
+        </ProfileSection>
       </div>
 
-      {/* Essays & Key Themes - Full Width */}
-      <section className="bg-card border border-border rounded-xl p-6" style={{ boxShadow: "var(--shadow-sm)" }}>
-        <h3 className="text-sm font-semibold text-foreground flex items-center gap-2 mb-4">
-          <BookOpen className="w-4 h-4 text-primary" /> Essays & Key Themes
-        </h3>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {(candidate.essays ?? []).map((essay, i) => (
-            <div key={i} className="rounded-lg border border-border/50 bg-secondary/35 p-4">
-              <p className="text-sm font-semibold text-foreground mb-2">{essay.title}</p>
-              <p className="text-sm text-foreground/80 leading-relaxed">{essay.content}</p>
-            </div>
-          ))}
-        </div>
-      </section>
+      <ProfileSection title="Essays & key themes" icon={BookOpen}>
+        {(candidate.essays ?? []).length === 0 ? (
+          <EmptyText>No essays found.</EmptyText>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+            {(candidate.essays ?? []).map((essay) => (
+              <div key={essay.id || essay.title} className="rounded-xl bg-muted p-4">
+                <p className="text-sm font-semibold text-foreground mb-2">{essay.title}</p>
+                <p className="text-sm text-foreground/80 leading-relaxed">{essay.content}</p>
+              </div>
+            ))}
+          </div>
+        )}
+      </ProfileSection>
 
       {showBotModal ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-md rounded-2xl bg-card border border-border p-6" style={{ boxShadow: "var(--shadow-sm)" }}>
+          <div className="w-full max-w-md rounded-2xl bg-card border border-border p-6 shadow-lg">
             <div className="flex items-center justify-between">
-              <h3 className="text-base font-semibold text-foreground">Send Bot to Meeting</h3>
+              <h3 className="text-base font-semibold text-foreground">Send bot to meeting</h3>
               <button
+                type="button"
                 className="text-xs text-muted-foreground hover:text-foreground"
                 onClick={() => setShowBotModal(false)}
               >
                 Close
               </button>
             </div>
-
-            <p className="mt-2 text-xs text-muted-foreground">
+            <p className="mt-2 text-sm text-muted-foreground">
               Paste a meeting URL and we will dispatch the bot to join and capture the transcript.
             </p>
-
             <div className="mt-4 space-y-4">
               <div>
                 <p className="text-xs font-medium text-foreground">Meeting URL</p>
                 <input
                   type="url"
                   placeholder="https://zoom.us/j/123..."
-                  className="mt-1 w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground"
+                  className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground"
                   value={meetingUrl}
                   onChange={(e) => setMeetingUrl(e.target.value)}
                 />
               </div>
-
               <div>
-                <p className="text-xs font-medium text-foreground">Bot Name</p>
+                <p className="text-xs font-medium text-foreground">Bot name</p>
                 <input
                   type="text"
-                  className="mt-1 w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground"
+                  className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground"
                   value={botName}
                   onChange={(e) => setBotName(e.target.value)}
                 />
               </div>
             </div>
-
             {botError ? (
-              <div className="mt-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+              <div className="mt-4 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-600 dark:text-red-400">
                 {botError}
               </div>
             ) : null}
-
             {botSuccess ? (
-              <div className="mt-4 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-700">
+              <div className="mt-4 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-600 dark:text-emerald-400">
                 {botSuccess}
               </div>
             ) : null}
-
-            <div className="mt-6 flex items-center justify-end space-x-2">
-              <button
-                className="text-xs text-muted-foreground hover:text-foreground"
-                onClick={() => setShowBotModal(false)}
-              >
+            <div className="mt-6 flex items-center justify-end gap-2">
+              <Button type="button" variant="ghost" onClick={() => setShowBotModal(false)}>
                 Cancel
-              </button>
-              <button
-                className="text-xs bg-primary text-primary-foreground px-3 py-2 rounded-md disabled:opacity-60"
+              </Button>
+              <Button
+                type="button"
+                disabled={isSendingBot}
                 onClick={async () => {
                   if (!meetingUrl) {
                     setBotError("Meeting URL is required");
                     return;
                   }
-
                   try {
                     setBotError("");
                     setBotSuccess("");
@@ -547,15 +497,13 @@ export default function CandidateProfilePage() {
                     setIsSendingBot(false);
                   }
                 }}
-                disabled={isSendingBot}
               >
-                {isSendingBot ? "Sending..." : "Send Bot"}
-              </button>
+                {isSendingBot ? "Sending..." : "Send bot"}
+              </Button>
             </div>
           </div>
         </div>
       ) : null}
-
     </div>
   );
 }

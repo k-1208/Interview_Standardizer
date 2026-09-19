@@ -1,53 +1,80 @@
+import type { ElementType } from "react";
 import { Users, FileText, MessageSquare, Clock } from "lucide-react";
-import { cn } from "@/lib/utils";
 
 interface KpiCardProps {
   title: string;
   value: string | number;
-  icon: React.ElementType;
-  trend?: string;
-  trendUp?: boolean;
+  icon: ElementType;
+  caption?: string;
 }
 
 interface KpiCardsProps {
-  kpisData?: any;
+  kpisData?: {
+    dashboard?: {
+      kpis?: {
+        totalCandidates?: number;
+        pendingCandidates?: number;
+        reviewedCandidates?: number;
+        pendingInvitations?: number;
+      };
+    };
+  };
+  isLoading?: boolean;
 }
 
-const KpiCard = ({ title, value, icon: Icon, trend, trendUp }: KpiCardProps) => (
+const KpiCard = ({ title, value, icon: Icon, caption }: KpiCardProps) => (
   <div className="kpi-card">
-    <div className="flex items-start justify-between mb-3">
-      <span className="text-sm text-muted-foreground font-medium leading-snug">{title}</span>
-      <div className="w-9 h-9 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0 ml-2">
-        <Icon className="w-4 h-4 text-blue-500" strokeWidth={1.5} />
-      </div>
+    <div className="flex items-start justify-between gap-3">
+      <p className="text-sm text-muted-foreground">{title}</p>
+      <Icon className="w-4 h-4 text-muted-foreground/70 shrink-0" strokeWidth={1.5} />
     </div>
-    <div className="text-3xl font-bold text-foreground">{value}</div>
-    {trend && (
-      <p className={cn("text-xs mt-1.5 font-medium", trendUp ? "text-emerald-600" : "text-muted-foreground")}>
-        {trend}
-      </p>
-    )}
+    <p className="text-[32px] leading-none font-semibold tracking-tight text-foreground mt-4">{value}</p>
+    {caption ? <p className="text-xs text-muted-foreground mt-3">{caption}</p> : null}
   </div>
 );
 
-const KpiCards = ({ kpisData }: KpiCardsProps) => {
-  const kpis: KpiCardProps[] = kpisData?.dashboard?.kpis
-    ? [
-        { title: "Total Candidates", value: kpisData.dashboard.kpis.totalCandidates, icon: Users },
-        { title: "Pending Reviews", value: kpisData.dashboard.kpis.pendingCandidates, icon: FileText },
-        { title: "Interviews Ready", value: kpisData.dashboard.kpis.scheduledInterviews, icon: MessageSquare },
-        { title: "Pending Invitations", value: kpisData.dashboard.kpis.pendingInvitations, icon: Clock },
-      ]
-    : [
-        { title: "Total Candidates", value: 248, icon: Users, trend: "+12 this month", trendUp: true },
-        { title: "Parsed This Week", value: 34, icon: FileText, trend: "+8 vs last week", trendUp: true },
-        { title: "Interviews Ready", value: 18, icon: MessageSquare, trend: "5 scheduled today" },
-        { title: "Pending Reviews", value: 7, icon: Clock, trend: "3 high priority" },
-      ];
+const KpiCards = ({ kpisData, isLoading = false }: KpiCardsProps) => {
+  const kpis = kpisData?.dashboard?.kpis;
+  const cards: KpiCardProps[] = [
+    {
+      title: "Total candidates",
+      value: kpis?.totalCandidates ?? 0,
+      icon: Users,
+      caption: "Across all active applications",
+    },
+    {
+      title: "Pending review",
+      value: kpis?.pendingCandidates ?? 0,
+      icon: FileText,
+      caption: "Needs evaluator attention",
+    },
+    {
+      title: "Interview ready",
+      value: kpis?.reviewedCandidates ?? 0,
+      icon: MessageSquare,
+      caption: "Ready for scheduling",
+    },
+    {
+      title: "Pending invitations",
+      value: kpis?.pendingInvitations ?? 0,
+      icon: Clock,
+      caption: "Awaiting candidate response",
+    },
+  ];
+
+  if (isLoading && !kpis) {
+    return (
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        {[0, 1, 2, 3].map((card) => (
+          <div key={card} className="kpi-card h-[132px] animate-pulse" />
+        ))}
+      </div>
+    );
+  }
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-      {kpis.map((kpi) => (
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+      {cards.map((kpi) => (
         <KpiCard key={kpi.title} {...kpi} />
       ))}
     </div>

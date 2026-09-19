@@ -128,12 +128,12 @@ export const mockCandidates: CandidateProfile[] = [
 
 export const statusConfig = {
   pending: {
-    label: "Pending Review",
+    label: "Pending review",
     className: "bg-amber-500/10 text-amber-700 dark:text-amber-300 ring-1 ring-inset ring-amber-500/20",
     dotClass: "bg-amber-500",
   },
   reviewed: {
-    label: "Interview Ready",
+    label: "Interview ready",
     className: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 ring-1 ring-inset ring-emerald-500/20",
     dotClass: "bg-emerald-500",
   },

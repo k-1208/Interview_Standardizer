@@ -16,6 +16,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/contexts/ThemeContext";
+import { DataPanel, DataTable, DataTd, DataTh } from "@/components/ui/data-panel";
+import { InitialsAvatar } from "@/components/ui/initials-avatar";
+import { formatRole, getInitials } from "@/lib/display";
 
 type MemberRole = "all" | "admin" | "reviewer";
 
@@ -33,43 +36,31 @@ const ROLE_FILTERS: { id: MemberRole; label: string }[] = [
   { id: "reviewer", label: "Reviewer" },
 ];
 
-const getInitials = (name: string) =>
-  name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase() ?? "")
-    .join("") || "?";
-
 const formatJoinedAt = (value?: string) => {
   if (!value) return "—";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return String(value);
 
-  const day = date.toLocaleDateString("en-US", {
+  return date.toLocaleDateString("en-US", {
     month: "short",
     day: "numeric",
     year: "numeric",
   });
-  const time = date.toLocaleTimeString("en-US", {
-    hour: "numeric",
-    minute: "2-digit",
-  });
-  return `${day} · ${time}`;
 };
 
 const getRoleBadge = (role: string) => {
-  const formatted = role.replace("_", " ").toUpperCase();
+  const formatted = formatRole(role);
   const className =
     role === "super_admin"
-      ? "bg-amber-500/10 text-amber-400 ring-1 ring-inset ring-amber-500/30"
+      ? "text-amber-700 dark:text-amber-400"
       : role === "admin"
-        ? "bg-violet-500/10 text-violet-400 ring-1 ring-inset ring-violet-500/30"
-        : "bg-emerald-500/10 text-emerald-400 ring-1 ring-inset ring-emerald-500/30";
+        ? "text-violet-700 dark:text-violet-400"
+        : "text-emerald-700 dark:text-emerald-400";
 
   return (
-    <span className={cn("inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-semibold tracking-wide", className)}>
-      {formatted}
+    <span className={cn("inline-flex items-center gap-2 text-[13px]", className)}>
+      <span className="h-1.5 w-1.5 rounded-full bg-current" />
+      <span className="text-foreground/80">{formatted}</span>
     </span>
   );
 };
@@ -86,7 +77,6 @@ export default function SettingsPage() {
   const [isInviting, setIsInviting] = useState(false);
   const [memberSearch, setMemberSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState<MemberRole>("all");
-  const [openMenuId, setOpenMenuId] = useState<number | null>(null);
   const [memberActionError, setMemberActionError] = useState("");
   const [memberActionSuccess, setMemberActionSuccess] = useState("");
   const [profileMember, setProfileMember] = useState<WorkspaceMemberProfile | null>(null);
@@ -96,6 +86,7 @@ export default function SettingsPage() {
   const [isSavingRole, setIsSavingRole] = useState(false);
   const [removeTarget, setRemoveTarget] = useState<WorkspaceMember | null>(null);
   const [isRemoving, setIsRemoving] = useState(false);
+  const [openMenuId, setOpenMenuId] = useState<number | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
 
   const loadProfile = async (workspaceId: number) => {
@@ -306,7 +297,13 @@ export default function SettingsPage() {
 
   return (
     <div className="max-w-4xl mx-auto fade-in space-y-6">
-      <div className="bg-card border border-border rounded-2xl p-6 space-y-6" style={{ boxShadow: "var(--shadow-sm)" }}>
+      <div>
+        <p className="text-xs font-medium text-muted-foreground">Admin</p>
+        <h1 className="text-[28px] leading-tight font-semibold tracking-tight text-foreground mt-1">Settings</h1>
+        <p className="text-sm text-muted-foreground mt-1.5">Account details, appearance, and workspace members.</p>
+      </div>
+
+      <DataPanel className="p-6 space-y-6">
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-base font-semibold text-foreground">Account Settings</h2>
@@ -392,24 +389,19 @@ export default function SettingsPage() {
             </div>
           </div>
         </div>
-      </div>
+      </DataPanel>
 
-      <div className="bg-card border border-border rounded-2xl p-6" style={{ boxShadow: "var(--shadow-sm)" }}>
-        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+      <DataPanel className="overflow-visible">
+        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 p-4 sm:px-5">
           <div>
-            <div className="flex items-center gap-2.5">
-              <h2 className="text-base font-semibold text-foreground">Workspace Members</h2>
-              <span className="inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full bg-primary/15 text-primary text-[11px] font-semibold">
-                {members.length}
-              </span>
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">
+            <h2 className="text-base font-semibold text-foreground">Workspace members</h2>
+            <p className="text-sm text-muted-foreground mt-1">
               Manage member access, permissions and workspace roles.
             </p>
           </div>
           {canInvite ? (
             <Button
-              className="rounded-full h-10 px-4 text-sm font-medium shrink-0 self-start"
+              className="h-10 px-4 rounded-full font-medium shrink-0 self-start bg-foreground text-background hover:bg-foreground/90"
               onClick={() => {
                 setInviteError("");
                 setInviteSuccess("");
@@ -419,18 +411,18 @@ export default function SettingsPage() {
               <Plus className="w-4 h-4" /> Invite member
             </Button>
           ) : (
-            <span className="text-[11px] text-muted-foreground bg-muted/50 px-2.5 py-1 rounded-md">Role: Read-only</span>
+            <span className="text-[11px] text-muted-foreground bg-muted px-2.5 py-1 rounded-md">Role: Read-only</span>
           )}
         </div>
 
-        <div className="mt-5 flex flex-col lg:flex-row gap-3 lg:items-center justify-between">
+        <div className="flex flex-col lg:flex-row gap-3 lg:items-center justify-between px-4 sm:px-5 pb-3">
           <div className="relative w-full lg:max-w-sm">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
-              placeholder="Search members..."
+              placeholder="Search name or email..."
               value={memberSearch}
               onChange={(e) => setMemberSearch(e.target.value)}
-              className="pl-9 bg-background border-border"
+              className="h-10 pl-10 rounded-full bg-background border-border shadow-none"
             />
           </div>
 
@@ -443,10 +435,10 @@ export default function SettingsPage() {
                   type="button"
                   onClick={() => setRoleFilter(filter.id)}
                   className={cn(
-                    "h-8 px-3 rounded-lg text-xs font-medium border transition-colors",
+                    "h-10 px-3.5 rounded-full text-xs font-medium border transition-colors",
                     isActive
-                      ? "bg-primary/10 text-primary border-primary/40"
-                      : "bg-background text-muted-foreground border-border hover:text-foreground hover:bg-muted/60"
+                      ? "bg-muted text-foreground border-border"
+                      : "bg-background text-muted-foreground border-border hover:text-foreground"
                   )}
                 >
                   {filter.label}
@@ -456,104 +448,120 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        <div className="mt-5">
-          {memberActionSuccess ? (
-            <div className="mb-3 rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3 text-xs text-emerald-400 font-medium">
-              {memberActionSuccess}
-            </div>
-          ) : null}
-          {memberActionError ? (
-            <div className="mb-3 rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-xs text-red-400 font-medium">
-              {memberActionError}
-            </div>
-          ) : null}
-          {members.length === 0 ? (
-            <div className="rounded-xl border border-border/70 bg-background p-8 text-center text-sm text-muted-foreground">
-              Workspace members are not available or restricted for your role.
-            </div>
-          ) : filteredMembers.length === 0 ? (
-            <div className="rounded-xl border border-border/70 bg-background p-8 text-center text-sm text-muted-foreground">
-              No members match your search.
-            </div>
-          ) : (
-            <div
-              className={cn(
-                "space-y-2.5 pr-1",
-                filteredMembers.length > 8 && "max-h-[42rem] overflow-y-auto"
-              )}
-            >
-              {filteredMembers.map((member) => (
-                <div
-                  key={member.id}
-                  className="grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_7.5rem_2.5rem] md:grid-cols-[minmax(0,1fr)_7.5rem_10rem_2.5rem] items-center gap-4 p-3.5 rounded-xl border border-border/70 bg-background"
-                >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-11 h-11 rounded-xl bg-primary text-primary-foreground flex items-center justify-center text-xs font-semibold shrink-0">
-                      {getInitials(member.name)}
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium text-foreground truncate">{member.name}</p>
-                      <p className="text-xs text-muted-foreground truncate">{member.email}</p>
-                      <div className="mt-1.5 sm:hidden">{getRoleBadge(member.role)}</div>
-                    </div>
-                  </div>
-
-                  <div className="hidden sm:flex justify-start">
-                    {getRoleBadge(member.role)}
-                  </div>
-
-                  <div className="hidden md:block text-right">
-                    <p className="text-[11px] text-muted-foreground">Joined</p>
-                    <p className="text-xs text-foreground/80">{formatJoinedAt(member.joinedAt)}</p>
-                  </div>
-
-                  {canInvite ? (
-                    <div
-                      className="relative justify-self-end"
-                      ref={openMenuId === member.id ? menuRef : undefined}
-                    >
-                      <button
-                        type="button"
-                        className="h-8 w-8 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/60 flex items-center justify-center"
-                        onClick={() => setOpenMenuId((current) => (current === member.id ? null : member.id))}
-                        aria-label={`Actions for ${member.name}`}
-                      >
-                        <MoreHorizontal className="w-4 h-4" />
-                      </button>
-                      {openMenuId === member.id ? (
-                        <div className="absolute right-0 mt-2 w-40 rounded-lg border border-border bg-card shadow-lg z-10 py-1">
-                          <button
-                            className="w-full text-left px-3 py-2 text-xs text-foreground hover:bg-muted"
-                            onClick={() => handleViewProfile(member)}
-                          >
-                            View Profile
-                          </button>
-                          {canManageMember(member) ? (
-                            <>
-                              <button
-                                className="w-full text-left px-3 py-2 text-xs text-foreground hover:bg-muted"
-                                onClick={() => handleOpenChangeRole(member)}
-                              >
-                                Change Role
-                              </button>
-                              <button
-                                className="w-full text-left px-3 py-2 text-xs text-red-500 hover:bg-muted"
-                                onClick={() => handleOpenRemove(member)}
-                              >
-                                Remove
-                              </button>
-                            </>
-                          ) : null}
-                        </div>
-                      ) : null}
-                    </div>
-                  ) : null}
-                </div>
-              ))}
-            </div>
-          )}
+        <div className="px-5 pb-3 flex items-center justify-between gap-3 text-xs text-muted-foreground">
+          <p>
+            <span className="font-semibold text-foreground">{filteredMembers.length}</span>
+            {` member${filteredMembers.length === 1 ? "" : "s"} in this view`}
+          </p>
         </div>
-      </div>
+
+        {memberActionSuccess ? (
+          <div className="mx-4 mb-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3 text-xs text-emerald-600 dark:text-emerald-400 font-medium">
+            {memberActionSuccess}
+          </div>
+        ) : null}
+        {memberActionError ? (
+          <div className="mx-4 mb-3 rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-xs text-red-600 dark:text-red-400 font-medium">
+            {memberActionError}
+          </div>
+        ) : null}
+
+        <DataTable className="overflow-visible">
+          <thead>
+            <tr>
+              <DataTh className="w-[46%]">Member</DataTh>
+              <DataTh className="w-[20%]">Role</DataTh>
+              <DataTh className="w-[24%]">Joined</DataTh>
+              <DataTh className="w-[10%]" align="right">
+                Action
+              </DataTh>
+            </tr>
+          </thead>
+          <tbody>
+            {members.length === 0 ? (
+              <tr>
+                <td colSpan={4} className="py-16 text-center text-sm text-muted-foreground">
+                  Workspace members are not available or restricted for your role.
+                </td>
+              </tr>
+            ) : filteredMembers.length === 0 ? (
+              <tr>
+                <td colSpan={4} className="py-16 text-center text-sm text-muted-foreground">
+                  No members match the current filters.
+                </td>
+              </tr>
+            ) : (
+              filteredMembers.map((member) => (
+                <tr
+                  key={member.id}
+                  tabIndex={0}
+                  onClick={() => handleViewProfile(member)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      handleViewProfile(member);
+                    }
+                  }}
+                  className="cursor-pointer hover:bg-muted/60 transition-colors outline-none focus-visible:bg-muted/60"
+                >
+                  <DataTd>
+                    <div className="flex items-center gap-3 min-w-0">
+                      <InitialsAvatar name={member.name} />
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-foreground truncate">{member.name}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5 truncate">{member.email}</p>
+                      </div>
+                    </div>
+                  </DataTd>
+                  <DataTd>{getRoleBadge(member.role)}</DataTd>
+                  <DataTd>
+                    <span className="text-sm text-muted-foreground">{formatJoinedAt(member.joinedAt)}</span>
+                  </DataTd>
+                  <DataTd
+                    align="right"
+                    onClick={(event) => event.stopPropagation()}
+                    onKeyDown={(event) => event.stopPropagation()}
+                  >
+                    {canManageMember(member) ? (
+                      <div
+                        className="relative inline-flex justify-end"
+                        ref={openMenuId === member.id ? menuRef : undefined}
+                      >
+                        <button
+                          type="button"
+                          className="h-8 w-8 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted flex items-center justify-center"
+                          onClick={() => setOpenMenuId((current) => (current === member.id ? null : member.id))}
+                          aria-label={`Actions for ${member.name}`}
+                        >
+                          <MoreHorizontal className="w-4 h-4" />
+                        </button>
+                        {openMenuId === member.id ? (
+                          <div className="absolute right-0 top-9 w-40 rounded-lg border border-border bg-popover shadow-md z-20 py-1">
+                            <button
+                              type="button"
+                              className="w-full text-left px-3 py-2 text-sm text-foreground hover:bg-muted"
+                              onClick={() => handleOpenChangeRole(member)}
+                            >
+                              Change role
+                            </button>
+                            <button
+                              type="button"
+                              className="w-full text-left px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-muted"
+                              onClick={() => handleOpenRemove(member)}
+                            >
+                              Remove
+                            </button>
+                          </div>
+                        ) : null}
+                      </div>
+                    ) : null}
+                  </DataTd>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </DataTable>
+      </DataPanel>
 
       {profileMember || isLoadingProfile ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">

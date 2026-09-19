@@ -1,10 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import KpiCards from "@/components/dashboard/KpiCards";
 import RecentCandidatesTable from "@/components/dashboard/RecentCandidates";
-import { Button } from "@/components/ui/button";
 import { getProfile } from "@/api/user";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 
@@ -44,21 +43,23 @@ export default function DashboardHome() {
     };
   }, [selectedWorkspaceId]);
 
-  const memoizedProfileData = useMemo(() => profileData, [profileData]);
-
   return (
     <div className="space-y-8 fade-in">
-      <KpiCards kpisData={memoizedProfileData} />
+      <KpiCards kpisData={profileData} isLoading={isLoading} />
 
       <section>
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-base font-semibold text-foreground">Recent Candidates</h2>
-          <Button variant="outline" size="sm" onClick={() => router.push("/candidates")} className="text-xs">
-            View All
-          </Button>
+          <h2 className="text-base font-semibold text-foreground">Recent candidates</h2>
+          <button
+            type="button"
+            onClick={() => router.push("/candidates")}
+            className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            View all →
+          </button>
         </div>
         <RecentCandidatesTable
-          candidates={memoizedProfileData?.dashboard?.recentCandidates}
+          candidates={profileData?.dashboard?.recentCandidates}
           isLoading={isLoading}
         />
       </section>

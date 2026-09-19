@@ -1,8 +1,12 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { statusConfig } from "@/lib/mock-data";
-import { cn } from "@/lib/utils";
+import type { KeyboardEvent } from "react";
+import { Button } from "@/components/ui/button";
+import { InitialsAvatar } from "@/components/ui/initials-avatar";
+import { StatusLabel, ScoreValue } from "@/components/ui/status-label";
+import { DataPanel, DataTable, DataTd, DataTh } from "@/components/ui/data-panel";
+import { candidateMeta, formatRelativeTime, parseScore } from "@/lib/display";
 
 interface RecentCandidate {
   id: string | number;
@@ -25,27 +29,6 @@ interface RecentCandidatesTableProps {
   isLoading?: boolean;
 }
 
-const getInitials = (name: string) =>
-  name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase() ?? "")
-    .join("") || "?";
-
-const parseScore = (value?: string | null) => {
-  if (!value) return null;
-  const parsed = parseFloat(String(value).replace("%", "").trim());
-  return Number.isFinite(parsed) ? Math.round(parsed) : null;
-};
-
-const statusTone = (status: string) => {
-  if (status === "reviewed") return "text-emerald-400 bg-emerald-500/10 border-emerald-500/30";
-  if (status === "pending") return "text-amber-400 bg-amber-500/10 border-amber-500/30";
-  if (status === "interviewing") return "text-violet-400 bg-violet-500/10 border-violet-500/30";
-  return "text-cyan-400 bg-cyan-500/10 border-cyan-500/30";
-};
-
 const RecentCandidatesTable = ({
   limit = 5,
   onRowClick,
@@ -55,7 +38,7 @@ const RecentCandidatesTable = ({
   const router = useRouter();
   const candidates = (profileCandidates || []).slice(0, limit);
 
-  const handleClick = (id: string | number) => {
+  const openCandidate = (id: string | number) => {
     const candidateId = String(id);
     if (onRowClick) {
       onRowClick(candidateId);
@@ -64,98 +47,99 @@ const RecentCandidatesTable = ({
     router.push(`/candidate/${candidateId}`);
   };
 
+  const handleRowKeyDown = (event: KeyboardEvent<HTMLTableRowElement>, id: string | number) => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      openCandidate(id);
+    }
+  };
+
   return (
-    <section className="rounded-2xl border border-border bg-card overflow-hidden" style={{ boxShadow: "0 24px 70px rgba(0,0,0,.18)" }}>
-      <table className="w-full table-fixed border-separate border-spacing-0">
+    <DataPanel>
+      <DataTable>
         <thead>
           <tr>
-            <th className="w-[44%] bg-card text-left px-3 py-2.5 text-[11px] font-bold uppercase tracking-wider text-muted-foreground border-b border-border">
-              Candidate
-            </th>
-            <th className="w-[12%] bg-card text-left px-3 py-2.5 text-[11px] font-bold uppercase tracking-wider text-muted-foreground border-b border-border">
-              Score
-            </th>
-            <th className="w-[22%] bg-card text-left px-3 py-2.5 text-[11px] font-bold uppercase tracking-wider text-muted-foreground border-b border-border">
-              Status
-            </th>
-            <th className="w-[22%] bg-card text-right px-3 py-2.5 text-[11px] font-bold uppercase tracking-wider text-muted-foreground border-b border-border">
+            <DataTh className="w-[38%]">Candidate</DataTh>
+            <DataTh className="w-[12%]">Score</DataTh>
+            <DataTh className="w-[20%]">Status</DataTh>
+            <DataTh className="w-[16%]">Last updated</DataTh>
+            <DataTh className="w-[14%]" align="right">
               Action
-            </th>
+            </DataTh>
           </tr>
         </thead>
         <tbody>
           {isLoading ? (
             [0, 1, 2].map((row) => (
               <tr key={row}>
-                <td colSpan={4} className="px-3 py-3 border-b border-border/70">
-                  <div className="h-10 rounded-lg bg-muted/60 animate-pulse" />
-                </td>
+                <DataTd colSpan={5}>
+                  <div className="h-10 rounded-lg bg-muted animate-pulse" />
+                </DataTd>
               </tr>
             ))
           ) : candidates.length === 0 ? (
             <tr>
-              <td colSpan={4} className="py-16 text-center text-[13px] text-muted-foreground">
+              <td colSpan={5} className="py-16 text-center text-sm text-muted-foreground">
                 No recent candidates yet.
               </td>
             </tr>
           ) : (
-            candidates.map((c) => {
-              const status = statusConfig[c.status as keyof typeof statusConfig] || statusConfig.pending;
-              const score = parseScore(c.grade12) ?? parseScore(c.gpa);
-              const meta = [c.degree, c.board].filter(Boolean).join(" · ");
+            candidates.map((candidate) => {
+              const score = parseScore(candidate.grade12) ?? parseScore(candidate.gpa);
+              const meta = candidateMeta(candidate.degree, candidate.board);
 
               return (
-                <tr key={c.id} className="hover:bg-muted/40 transition-colors">
-                  <td className="px-3 py-2.5 border-b border-border/70">
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <div className="h-8 w-8 rounded-lg bg-primary/10 text-primary text-[11px] font-extrabold flex items-center justify-center shrink-0">
-                        {getInitials(c.name)}
-                      </div>
+                <tr
+                  key={candidate.id}
+                  tabIndex={0}
+                  onClick={() => openCandidate(candidate.id)}
+                  onKeyDown={(event) => handleRowKeyDown(event, candidate.id)}
+                  className="cursor-pointer hover:bg-muted/60 transition-colors outline-none focus-visible:bg-muted/60"
+                >
+                  <DataTd>
+                    <div className="flex items-center gap-3 min-w-0">
+                      <InitialsAvatar name={candidate.name} />
                       <div className="min-w-0">
-                        <p className="text-[13px] font-bold text-foreground truncate">{c.name}</p>
-                        <p className="text-[11px] text-muted-foreground mt-0.5 truncate">
+                        <p className="text-sm font-medium text-foreground truncate">{candidate.name}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5 truncate">
                           {meta || "Degree not specified"}
                         </p>
                       </div>
                     </div>
-                  </td>
-                  <td className="px-3 py-2.5 border-b border-border/70">
-                    {score === null ? (
-                      <span className="text-muted-foreground">—</span>
-                    ) : (
-                      <span className="font-bold text-foreground">
-                        {score}
-                        <small className="ml-0.5 text-[10px] font-semibold text-muted-foreground">/100</small>
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-3 py-2.5 border-b border-border/70">
-                    <span
-                      className={cn(
-                        "inline-flex items-center gap-1.5 px-2 py-1 rounded-full border text-[10px] font-bold whitespace-nowrap",
-                        statusTone(c.status)
-                      )}
-                    >
-                      <span className="h-1.5 w-1.5 rounded-full bg-current shadow-[0_0_8px_currentColor]" />
-                      {status.label}
+                  </DataTd>
+                  <DataTd>
+                    <ScoreValue score={score} />
+                  </DataTd>
+                  <DataTd>
+                    <StatusLabel status={candidate.status} />
+                  </DataTd>
+                  <DataTd>
+                    <span className="text-sm text-muted-foreground">
+                      {formatRelativeTime(candidate.updatedAt || candidate.createdAt || candidate.dateAdded)}
                     </span>
-                  </td>
-                  <td className="px-3 py-2.5 border-b border-border/70 text-right">
-                    <button
+                  </DataTd>
+                  <DataTd
+                    align="right"
+                    onClick={(event) => event.stopPropagation()}
+                    onKeyDown={(event) => event.stopPropagation()}
+                  >
+                    <Button
                       type="button"
-                      className="h-8 px-2.5 rounded-lg border border-border bg-background text-[12px] font-semibold text-foreground hover:bg-muted"
-                      onClick={() => handleClick(c.id)}
+                      variant="outline"
+                      size="sm"
+                      className="h-8 px-3"
+                      onClick={() => openCandidate(candidate.id)}
                     >
                       View
-                    </button>
-                  </td>
+                    </Button>
+                  </DataTd>
                 </tr>
               );
             })
           )}
         </tbody>
-      </table>
-    </section>
+      </DataTable>
+    </DataPanel>
   );
 };
 
