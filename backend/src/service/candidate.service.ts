@@ -309,6 +309,7 @@ export async function getCandidates({ userId, workspaceId }: GetCandidatesInput)
 			degree: true,
 			grade10: true,
 			grade12: true,
+			gpa: true,
 			status: true,
 			assignedReviewerId: true,
 			assignedReviewer: {

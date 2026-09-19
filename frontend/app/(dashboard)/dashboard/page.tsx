@@ -57,7 +57,10 @@ export default function DashboardHome() {
             View All
           </Button>
         </div>
-        <RecentCandidatesTable candidates={memoizedProfileData?.dashboard?.recentCandidates} />
+        <RecentCandidatesTable
+          candidates={memoizedProfileData?.dashboard?.recentCandidates}
+          isLoading={isLoading}
+        />
       </section>
     </div>
   );

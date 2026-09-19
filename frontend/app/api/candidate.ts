@@ -20,6 +20,7 @@ export interface CandidateListItem {
 	board: string;
 	grade10: string;
 	grade12: string;
+	gpa?: string | null;
 	status: string;
 	degree?: string | null;
 	assignedReviewerId?: number | null;

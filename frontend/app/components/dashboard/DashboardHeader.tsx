@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Menu, Bell, Search, LogOut, Upload, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import ThemeToggle from "@/components/dashboard/ThemeToggle";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -169,6 +170,8 @@ const DashboardHeader = ({
         </Button>
 
         {actions}
+
+        <ThemeToggle />
 
         <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground relative">
           <Bell className="w-4 h-4" />

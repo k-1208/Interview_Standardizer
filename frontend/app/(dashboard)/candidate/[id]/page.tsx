@@ -23,11 +23,27 @@ import { getCandidateById, type CandidateDetailResponse } from "@/api/candidate"
 import { sendInterviewBot } from "@/api/ai";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 
-const statusConfig: Record<string, { label: string; className: string }> = {
-  pending: { label: "Pending Review", className: "bg-amber-100 text-amber-800" },
-  reviewed: { label: "Interview Ready", className: "bg-green-100 text-green-800" },
-  interviewing: { label: "Interviewing", className: "bg-blue-100 text-blue-800" },
-  completed: { label: "Completed", className: "bg-slate-100 text-slate-800" },
+const statusConfig: Record<string, { label: string; className: string; dotClass: string }> = {
+  pending: {
+    label: "Pending Review",
+    className: "bg-amber-500/10 text-amber-700 dark:text-amber-300 ring-1 ring-inset ring-amber-500/20",
+    dotClass: "bg-amber-500",
+  },
+  reviewed: {
+    label: "Interview Ready",
+    className: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 ring-1 ring-inset ring-emerald-500/20",
+    dotClass: "bg-emerald-500",
+  },
+  interviewing: {
+    label: "Interviewing",
+    className: "bg-violet-500/10 text-violet-700 dark:text-violet-300 ring-1 ring-inset ring-violet-500/20",
+    dotClass: "bg-violet-500",
+  },
+  completed: {
+    label: "Completed",
+    className: "bg-sky-500/10 text-sky-700 dark:text-sky-300 ring-1 ring-inset ring-sky-500/20",
+    dotClass: "bg-sky-500",
+  },
 };
 
 const academicOrder = ["9th", "10th", "11th", "12th"];
@@ -139,7 +155,10 @@ export default function CandidateProfilePage() {
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-3 mb-1">
             <h2 className="text-xl font-semibold text-foreground">{candidate.name}</h2>
-            <span className={`status-badge ${status.className}`}>{status.label}</span>
+            <span className={`status-badge ${status.className}`}>
+              <span className={`h-1.5 w-1.5 rounded-full ${status.dotClass}`} />
+              {status.label}
+            </span>
           </div>
           <p className="text-sm text-muted-foreground">{candidate.degree} · {candidate.board} · GPA {candidate.gpa}</p>
           <p className="text-xs text-muted-foreground mt-1">{candidate.email}</p>

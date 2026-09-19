@@ -39,7 +39,7 @@ const DashboardSidebar = ({ open, onToggle }: DashboardSidebarProps) => {
     <aside
       className={cn(
         "flex-shrink-0 flex flex-col transition-all duration-300 ease-in-out sidebar-gradient",
-        "text-sidebar-fg",
+        "text-sidebar-fg border-r border-sidebar-border",
         "fixed inset-y-0 left-0 z-40 lg:static",
         open ? "translate-x-0 w-60" : "-translate-x-full w-60 lg:translate-x-0 lg:w-16",
         !open && "lg:overflow-hidden"
@@ -54,7 +54,7 @@ const DashboardSidebar = ({ open, onToggle }: DashboardSidebarProps) => {
       >
         <div className="flex items-center gap-3 min-w-0">
           {/* Amber logo icon */}
-          <div className="w-8 h-8 rounded-lg bg-accent flex items-center justify-center flex-shrink-0">
+          <div className="w-8 h-8 rounded-lg bg-amber-400 flex items-center justify-center flex-shrink-0">
             <span className="text-white font-bold text-sm">IQ</span>
           </div>
           {open && (
@@ -86,7 +86,7 @@ const DashboardSidebar = ({ open, onToggle }: DashboardSidebarProps) => {
                 "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-150",
                 active
                   ? "bg-sidebar-accent/15 text-sidebar-fg-active font-medium"
-                  : "text-sidebar-fg hover:text-sidebar-fg hover:bg-sidebar-border/40",
+                  : "text-sidebar-fg hover:text-sidebar-fg-active hover:bg-sidebar-hover",
                 !open && "lg:justify-center lg:px-0"
               )}
             >

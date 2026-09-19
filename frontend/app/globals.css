@@ -1,6 +1,9 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
+  color-scheme: light;
   --background: #ffffff;
   --foreground: #171717;
   --card: #ffffff;
@@ -21,15 +24,16 @@
   --input: #e2e8f0;
   --ring: #2563eb;
   --radius: 0.5rem;
-  
-  /* Sidebar */
-  --sidebar-bg: hsl(230 30% 14%);
-  --sidebar-fg: hsl(220 20% 80%);
-  --sidebar-fg-active: hsl(0 0% 100%);
-  --sidebar-muted: hsl(230 15% 40%);
-  --sidebar-border: hsl(230 20% 22%);
-  --sidebar-accent-bg: hsl(234 62% 50%);
-  --accent: hsl(38 92% 55%);
+
+  /* Sidebar — light */
+  --sidebar-bg: #ffffff;
+  --sidebar-bg-end: #f8fafc;
+  --sidebar-fg: #475569;
+  --sidebar-fg-active: #0f172a;
+  --sidebar-muted: #94a3b8;
+  --sidebar-border: #e2e8f0;
+  --sidebar-accent-bg: #4f46e5;
+  --sidebar-hover: #f1f5f9;
   
   /* Shadows */
   --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
@@ -67,34 +71,43 @@
   --color-sidebar-muted: var(--sidebar-muted);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent: var(--sidebar-accent-bg);
-  --color-accent: var(--accent);
+  --color-sidebar-hover: var(--sidebar-hover);
   --color-success: #10b981;
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-    --card: #171717;
-    --card-foreground: #ededed;
-    --popover: #171717;
-    --popover-foreground: #ededed;
-    --primary: #3b82f6;
-    --primary-foreground: #ffffff;
-    --secondary: #27272a;
-    --secondary-foreground: #fafafa;
-    --muted: #27272a;
-    --muted-foreground: #a1a1aa;
-    --accent: #27272a;
-    --accent-foreground: #fafafa;
-    --destructive: #dc2626;
-    --destructive-foreground: #ffffff;
-    --border: #27272a;
-    --input: #27272a;
-    --ring: #3b82f6;
-  }
+.dark {
+  color-scheme: dark;
+  --background: #0a0a0a;
+  --foreground: #ededed;
+  --card: #171717;
+  --card-foreground: #ededed;
+  --popover: #171717;
+  --popover-foreground: #ededed;
+  --primary: #3b82f6;
+  --primary-foreground: #ffffff;
+  --secondary: #27272a;
+  --secondary-foreground: #fafafa;
+  --muted: #27272a;
+  --muted-foreground: #a1a1aa;
+  --accent: #27272a;
+  --accent-foreground: #fafafa;
+  --destructive: #dc2626;
+  --destructive-foreground: #ffffff;
+  --border: #27272a;
+  --input: #27272a;
+  --ring: #3b82f6;
+
+  /* Sidebar — dark */
+  --sidebar-bg: hsl(230 30% 14%);
+  --sidebar-bg-end: hsl(230 35% 10%);
+  --sidebar-fg: hsl(220 20% 80%);
+  --sidebar-fg-active: hsl(0 0% 100%);
+  --sidebar-muted: hsl(230 15% 40%);
+  --sidebar-border: hsl(230 20% 22%);
+  --sidebar-accent-bg: hsl(234 62% 50%);
+  --sidebar-hover: hsl(230 20% 22% / 0.6);
 }
 
 body {
@@ -117,7 +130,7 @@ body {
 }
 
 .sidebar-gradient {
-  background: linear-gradient(180deg, hsl(230 30% 14%) 0%, hsl(230 35% 10%) 100%);
+  background: linear-gradient(180deg, var(--sidebar-bg) 0%, var(--sidebar-bg-end) 100%);
 }
 
 .kpi-card {
@@ -143,10 +156,16 @@ body {
 }
 
 .status-badge {
-  padding: 0.25rem 0.75rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.125rem 0.5rem 0.125rem 0.375rem;
   border-radius: 9999px;
-  font-size: 0.75rem;
+  font-size: 0.6875rem;
   font-weight: 500;
+  letter-spacing: 0.01em;
+  line-height: 1.25rem;
+  white-space: nowrap;
 }
 
 .fade-in {
