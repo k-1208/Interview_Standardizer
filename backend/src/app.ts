@@ -16,6 +16,7 @@ const app = express();
 const allowedOrigins = [
   "https://interviewiq-amber.vercel.app",
   "http://localhost:3000",
+  ...(process.env.FRONTEND_URL ? [process.env.FRONTEND_URL] : []),
 ];
 
 const corsOptions: cors.CorsOptions = {

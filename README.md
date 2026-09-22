@@ -6,8 +6,8 @@ AI Product is a full-stack admissions workflow app. It ingests candidate resumes
 ## Architecture
 - Frontend (Next.js): Reviewer dashboard, candidate profiles, question generation, and meeting bot dispatch UI.
 - Backend (Express + Prisma): API layer for auth, candidates, uploads, AI question generation, and bot dispatch.
-- Queue Worker (BullMQ): Asynchronous PDF parsing and resume extraction.
-- Data Store: MySQL/MariaDB (via Prisma) for persistent data; Redis for queue state.
+- Queue Worker (Azure Service Bus): Asynchronous PDF parsing and resume extraction.
+- Data Store: PostgreSQL (via Prisma, Supabase-compatible) for persistent data; Azure Service Bus for the PDF job queue.
 - External Services: Gemini for question generation; Recall.ai for meeting bot + transcript.
 
 ## Data Flow
@@ -21,7 +21,7 @@ AI Product is a full-stack admissions workflow app. It ingests candidate resumes
 - Node.js (LTS)
 - npm
 - A running database for the backend (see backend .env)
-- Redis (for the queue worker)
+- Azure Service Bus connection string (for the queue worker)
 
 ## Backend
 
@@ -35,18 +35,24 @@ npm install
 Create backend/.env with placeholders like:
 ```bash
 PORT=4000
+DATABASE_URL=postgresql://postgres:[password]@db.[project-ref].supabase.co:5432/postgres?sslmode=require
 DATABASE_HOST=<db_host>
 DATABASE_USER=<db_user>
 DATABASE_PASSWORD=<db_password>
 DATABASE_NAME=<db_name>
-DATABASE_PORT=3306
-REDIS_HOST=<redis_host>
-REDIS_PORT=6379
-REDIS_PASSWORD=<redis_password>
+DATABASE_PORT=5432
+SERVICE_BUS_CONNECTION_STRING=<service_bus_connection_string>
+SERVICE_BUS_QUEUE_NAME=pdf-processing
 GEMINI_API_KEY=<gemini_api_key>
 RECALL_API_KEY=<recall_api_key>
 JWT_SECRET=<long_random_secret>
 FRONTEND_URL=http://localhost:3000
+```
+
+Then apply the Postgres schema:
+
+```bash
+npx prisma migrate deploy
 ```
 
 Organization signup, team invites, and roles are documented in [docs/ORGANIZATION_ONBOARDING.md](docs/ORGANIZATION_ONBOARDING.md).

@@ -1,24 +1,22 @@
-import { Queue } from "bullmq";
-import { connection } from "../../config/redis.js";
+import { serviceBusClient, SERVICE_BUS_QUEUE_NAME } from '../../config/serviceBus.js';
 
-export const pdfQueue = new Queue("pdf-processing", {
-  connection,
-  defaultJobOptions: {
-    attempts: 2,
-    backoff: {
-      type: "exponential",
-      delay: 2000,
-    },
-    removeOnComplete: true,
-    removeOnFail: false,
-  },
-});
-
-export const addPdfJob = async (data: {
+export type PdfJobData = {
   fileId: string;
   s3Url: string;
   s3key: string;
   workspaceId: number;
-}) => {
-  return await pdfQueue.add("parse-pdf", data);
+};
+
+const sender = serviceBusClient.createSender(SERVICE_BUS_QUEUE_NAME);
+
+export const addPdfJob = async (data: PdfJobData) => {
+  await sender.sendMessages({
+    body: data,
+    contentType: 'application/json',
+    applicationProperties: {
+      jobName: 'parse-pdf',
+    },
+  });
+
+  return { fileId: data.fileId };
 };

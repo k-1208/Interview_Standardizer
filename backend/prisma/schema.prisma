@@ -7,7 +7,7 @@ generator client {
 }
 
 datasource db {
-  provider = "mysql"
+  provider = "postgresql"
 }
 
 // ─── Enums ────────────────────────────────────────────────────────────────────
@@ -170,7 +170,7 @@ model TranscriptAnalysis {
   botId          String?   @db.VarChar(150)
   recordingId    String?   @db.VarChar(100)
   transcriptId   String?   @db.VarChar(100)
-  transcriptText String?   @db.LongText
+  transcriptText String?   @db.Text
   summary        String?   @db.Text
   questionsAsked Json      // string[]
   questionAnswerPairs Json // { question: string; answer: string }[]
