@@ -11,7 +11,6 @@ export interface EmailJobData {
   subject: string;
   html: string;
   text: string;
-  from?: string;
   cc?: string[];
   metadata?: Record<string, unknown>;
 }
@@ -25,7 +24,10 @@ export const emailQueue = new Queue<EmailJobData>('email-dispatch', {
       delay: 2000,
     },
     removeOnComplete: true,
-    removeOnFail: false,
+    removeOnFail: {
+      count: 20,
+      age: 24 * 3600,
+    },
   },
 });
 

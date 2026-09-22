@@ -113,6 +113,20 @@ export async function requireWorkspaceInvitePermission(userId: number, workspace
 
 type WorkspaceRole = 'super_admin' | 'admin' | 'reviewer';
 const MANAGEABLE_ROLES = ['admin', 'reviewer'] as const;
+export type InviteRole = (typeof MANAGEABLE_ROLES)[number];
+
+export const isInviteRole = (role: string): role is InviteRole =>
+	MANAGEABLE_ROLES.includes(role as InviteRole);
+
+export function assertCanInviteRole(actorRole: WorkspaceRole, role: string): asserts role is InviteRole {
+	if (!isInviteRole(role)) {
+		throw new Error('Role must be admin or reviewer');
+	}
+
+	if (actorRole === 'admin' && role !== 'reviewer') {
+		throw new Error('Admins can only invite reviewers');
+	}
+}
 
 const assertCanManageMember = (
 	actorRole: WorkspaceRole,
@@ -294,13 +308,15 @@ const memberErrorStatus = (message: string) => {
 		message === 'You do not have permission to manage members' ||
 		message === 'Super admin membership cannot be modified' ||
 		message === 'Admins can only manage reviewers' ||
+		message === 'Admins can only invite reviewers' ||
 		message === 'User does not have access to this workspace'
 	) {
 		return 403;
 	}
 	if (
 		message === 'You cannot change your own membership' ||
-		message === 'Role must be admin or reviewer'
+		message === 'Role must be admin or reviewer' ||
+		message === 'Invitation role is invalid'
 	) {
 		return 400;
 	}

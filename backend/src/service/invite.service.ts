@@ -1,15 +1,18 @@
 import { prisma } from '../utils/prismaClient.js';
 import { generateToken } from '../utils/helper.js';
 import { sendWorkspaceInvitationEmail } from './email.service.js';
-import { requireWorkspaceInvitePermission } from './workspace.service.js';
-
-type WorkspaceRole = 'super_admin' | 'admin' | 'reviewer';
+import {
+	assertCanInviteRole,
+	isInviteRole,
+	requireWorkspaceInvitePermission,
+	type InviteRole,
+} from './workspace.service.js';
 
 const INVITE_EXPIRY_DAYS = 7;
 
 export interface InvitePayload {
 	email: string;
-	role: WorkspaceRole;
+	role: InviteRole;
 	workspaceId: number;
 	invitedById: number;
 }
@@ -19,7 +22,8 @@ export const inviteWorkspaceMember = async ({ email, role, workspaceId, invitedB
 	const token = generateToken(32);
 	const expiresAt = new Date(Date.now() + INVITE_EXPIRY_DAYS * 24 * 60 * 60 * 1000);
 
-	await requireWorkspaceInvitePermission(invitedById, workspaceId);
+	const actor = await requireWorkspaceInvitePermission(invitedById, workspaceId);
+	assertCanInviteRole(actor.role, role);
 
 	const [workspace, inviter] = await Promise.all([
 		prisma.workspace.findUnique({ where: { id: workspaceId }, select: { id: true, name: true, slug: true } }),
@@ -153,15 +157,24 @@ export const acceptInvitation = async (token: string, userId: number) => {
 		throw new Error('Invitation email does not match user');
 	}
 
-	await prisma.workspaceMember.upsert({
+	if (!isInviteRole(invitation.role)) {
+		throw new Error('Invitation role is invalid');
+	}
+
+	const existingMembership = await prisma.workspaceMember.findUnique({
 		where: { userId_workspaceId: { userId, workspaceId: invitation.workspaceId } },
-		update: { role: invitation.role },
-		create: {
-			userId,
-			workspaceId: invitation.workspaceId,
-			role: invitation.role,
-		},
+		select: { id: true },
 	});
+
+	if (!existingMembership) {
+		await prisma.workspaceMember.create({
+			data: {
+				userId,
+				workspaceId: invitation.workspaceId,
+				role: invitation.role,
+			},
+		});
+	}
 
 	await prisma.invitation.update({
 		where: { id: invitation.id },
