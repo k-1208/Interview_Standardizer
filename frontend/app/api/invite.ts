@@ -61,6 +61,9 @@ export const validateInvite = async (tokenValue: string): Promise<any> => {
 	return raw.data;
 };
 
+export const emailsMatch = (left?: string | null, right?: string | null) =>
+	!!left && !!right && left.trim().toLowerCase() === right.trim().toLowerCase();
+
 export const acceptInvite = async (tokenValue: string): Promise<any> => {
 	const token = getStoredToken();
 	const response = await fetch(`${BACKEND_BASE_URL}/api/user/invite/accept`, {
@@ -82,5 +85,6 @@ export const acceptInvite = async (tokenValue: string): Promise<any> => {
 
 	return raw.data;
 };
+
 
 

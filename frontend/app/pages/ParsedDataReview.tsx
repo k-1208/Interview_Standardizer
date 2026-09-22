@@ -42,7 +42,7 @@ const ParsedDataReview = () => {
   };
 
   const handleSave = () => {
-    toast({ title: "Saved to Database", description: "Candidate profile has been saved successfully." });
+    toast({ title: "Saved", description: "Candidate profile has been saved." });
     navigate("/candidates");
   };
 

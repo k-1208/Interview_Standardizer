@@ -3,8 +3,8 @@
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowRight, Eye, EyeOff, Shield } from "lucide-react";
-import { getStoredToken, register } from "@/api/auth";
-import { acceptInvite, validateInvite } from "@/api/invite";
+import { clearStoredToken, getStoredToken, logout, me, register } from "@/api/auth";
+import { acceptInvite, emailsMatch, validateInvite } from "@/api/invite";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -53,15 +53,24 @@ function RegisterPageContent() {
     if (!token) return;
 
     const handleExistingSession = async () => {
-      if (inviteToken) {
-        try {
+      try {
+        const user = await me();
+        if (inviteToken) {
+          const invitation = await validateInvite(inviteToken);
+          if (!emailsMatch(user.email, invitation.email)) {
+            try {
+              await logout();
+            } catch {
+              clearStoredToken();
+            }
+            return;
+          }
           await acceptInvite(inviteToken);
-        } catch (error) {
-          console.error("[invite] accept failed", error);
         }
+        router.push("/dashboard");
+      } catch {
+        clearStoredToken();
       }
-
-      router.push("/dashboard");
     };
 
     handleExistingSession();
@@ -81,7 +90,7 @@ function RegisterPageContent() {
     try {
       await register(
         inviteToken
-          ? { name, email, password, inviteToken }
+          ? { email, password, inviteToken, name: name || email.split("@")[0] }
           : { name, organizationName, email, password }
       );
       router.push("/dashboard");
@@ -136,26 +145,28 @@ function RegisterPageContent() {
             </h2>
             <p className="text-slate-500 mt-1">
               {inviteWorkspaceName
-                ? "Create your account to accept the workspace invitation"
+                ? `Set a password to join ${inviteWorkspaceName}. Your email and organization are already filled in.`
                 : "Create your account to get started"}
             </p>
           </header>
 
           <form onSubmit={handleRegister} className="space-y-5">
-            <div className="space-y-2">
-              <Label htmlFor="name" className="text-sm font-medium text-slate-700">
-                Full name
-              </Label>
-              <Input
-                id="name"
-                type="text"
-                placeholder="Jane Doe"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="h-12 bg-white text-slate-900 placeholder:text-slate-400 border-slate-200 focus:border-indigo-500 rounded-lg shadow-sm"
-                required
-              />
-            </div>
+            {!inviteToken ? (
+              <div className="space-y-2">
+                <Label htmlFor="name" className="text-sm font-medium text-slate-700">
+                  Full name
+                </Label>
+                <Input
+                  id="name"
+                  type="text"
+                  placeholder="Jane Doe"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="h-12 bg-white text-slate-900 placeholder:text-slate-400 border-slate-200 focus:border-indigo-500 rounded-lg shadow-sm"
+                  required
+                />
+              </div>
+            ) : null}
 
             <div className="space-y-2">
               <Label htmlFor="email" className="text-sm font-medium text-slate-700">
@@ -173,7 +184,20 @@ function RegisterPageContent() {
               />
             </div>
 
-            {!inviteToken ? (
+            {inviteToken && inviteWorkspaceName ? (
+              <div className="space-y-2">
+                <Label htmlFor="organizationName" className="text-sm font-medium text-slate-700">
+                  Organization
+                </Label>
+                <Input
+                  id="organizationName"
+                  type="text"
+                  value={inviteWorkspaceName}
+                  readOnly
+                  className="h-12 bg-slate-50 text-slate-900 border-slate-200 rounded-lg shadow-sm"
+                />
+              </div>
+            ) : (
               <div className="space-y-2">
                 <Label htmlFor="organizationName" className="text-sm font-medium text-slate-700">
                   Organization name
@@ -188,7 +212,7 @@ function RegisterPageContent() {
                   required
                 />
               </div>
-            ) : null}
+            )}
 
             <div className="space-y-2">
               <Label htmlFor="password" className="text-sm font-medium text-slate-700">
@@ -246,11 +270,11 @@ function RegisterPageContent() {
               {isLoading ? (
                 <span className="flex items-center gap-2">
                   <span className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
-                  Creating account...
+                  {inviteToken ? "Joining..." : "Creating account..."}
                 </span>
               ) : (
                 <span className="flex items-center gap-2">
-                  Create account <ArrowRight className="w-4 h-4" />
+                  {inviteToken ? "Join organization" : "Create account"} <ArrowRight className="w-4 h-4" />
                 </span>
               )}
             </Button>

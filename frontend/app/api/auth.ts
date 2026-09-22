@@ -62,7 +62,7 @@ interface AuthPayload {
 }
 
 export interface RegisterInput {
-	name: string;
+	name?: string;
 	organizationName?: string;
 	email: string;
 	password: string;

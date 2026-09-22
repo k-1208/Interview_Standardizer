@@ -6,8 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Eye, EyeOff, ArrowRight, Shield } from "lucide-react";
-import { clearStoredToken, getStoredToken, login, me } from "@/api/auth";
-import { acceptInvite } from "@/api/invite";
+import { clearStoredToken, getStoredToken, login, logout, me } from "@/api/auth";
+import { acceptInvite, emailsMatch, validateInvite } from "@/api/invite";
 
 function LoginPageContent() {
   const router = useRouter();
@@ -25,13 +25,19 @@ function LoginPageContent() {
 
     const handleExistingSession = async () => {
       try {
-        await me();
+        const user = await me();
         if (inviteToken) {
-          try {
-            await acceptInvite(inviteToken);
-          } catch (error) {
-            console.error("[invite] accept failed", error);
+          const invitation = await validateInvite(inviteToken);
+          if (!emailsMatch(user.email, invitation.email)) {
+            try {
+              await logout();
+            } catch {
+              clearStoredToken();
+            }
+            setEmail(invitation.email || "");
+            return;
           }
+          await acceptInvite(inviteToken);
         }
 
         router.push("/dashboard");
@@ -58,7 +64,11 @@ function LoginPageContent() {
       router.push("/dashboard");
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unable to login. Please try again.";
-      setErrorMessage(message);
+      setErrorMessage(
+        /does not match user/i.test(message)
+          ? "This invitation belongs to a different email. Sign in with the invited account."
+          : message
+      );
     } finally {
       setIsLoading(false);
     }

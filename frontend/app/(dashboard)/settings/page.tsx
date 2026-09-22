@@ -73,7 +73,6 @@ export default function SettingsPage() {
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState("reviewer");
   const [inviteError, setInviteError] = useState("");
-  const [inviteSuccess, setInviteSuccess] = useState("");
   const [isInviting, setIsInviting] = useState(false);
   const [memberSearch, setMemberSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState<MemberRole>("all");
@@ -274,7 +273,6 @@ export default function SettingsPage() {
     }
 
     setInviteError("");
-    setInviteSuccess("");
     setIsInviting(true);
 
     try {
@@ -284,12 +282,15 @@ export default function SettingsPage() {
         workspaceId: activeWorkspaceId,
       });
 
-      setInviteSuccess("Invitation sent successfully via email queue.");
       setInviteEmail("");
       setInviteRole("reviewer");
+      setShowInviteModal(false);
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to send invite";
-      setInviteError(message);
+      const message = error instanceof Error ? error.message : "";
+      const isInternal = /queue|smtp|redis|service bus|workspaceid|enqueu/i.test(message);
+      setInviteError(
+        !message || isInternal ? "Couldn't send the invitation. Please try again." : message
+      );
     } finally {
       setIsInviting(false);
     }
@@ -404,7 +405,6 @@ export default function SettingsPage() {
               className="h-10 px-4 rounded-full font-medium shrink-0 self-start bg-foreground text-background hover:bg-foreground/90"
               onClick={() => {
                 setInviteError("");
-                setInviteSuccess("");
                 setShowInviteModal(true);
               }}
             >
@@ -731,12 +731,6 @@ export default function SettingsPage() {
             {inviteError ? (
               <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-xs text-red-700">
                 {inviteError}
-              </div>
-            ) : null}
-
-            {inviteSuccess ? (
-              <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-xs text-emerald-700">
-                {inviteSuccess}
               </div>
             ) : null}
 
