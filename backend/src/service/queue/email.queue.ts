@@ -1,5 +1,4 @@
-import { Queue } from 'bullmq';
-import { connection } from '../../config/redis.js';
+import { serviceBusClient, SERVICE_BUS_EMAIL_QUEUE_NAME } from '../../config/serviceBus.js';
 
 export interface EmailJobData {
   type:
@@ -16,22 +15,19 @@ export interface EmailJobData {
   metadata?: Record<string, unknown>;
 }
 
-export const emailQueue = new Queue<EmailJobData>('email-dispatch', {
-  connection,
-  defaultJobOptions: {
-    attempts: 3,
-    backoff: {
-      type: 'exponential',
-      delay: 2000,
-    },
-    removeOnComplete: true,
-    removeOnFail: false,
-  },
-});
+const sender = serviceBusClient.createSender(SERVICE_BUS_EMAIL_QUEUE_NAME);
 
 export const addEmailJob = async (jobData: EmailJobData) => {
   try {
-    return await emailQueue.add(`email-${jobData.type}-${Date.now()}`, jobData);
+    await sender.sendMessages({
+      body: jobData,
+      contentType: 'application/json',
+      applicationProperties: {
+        jobName: `email-${jobData.type}`,
+      },
+    });
+
+    return { type: jobData.type, to: jobData.to };
   } catch (error) {
     console.error('[emailQueue] Failed to enqueue email job:', error);
     throw error;

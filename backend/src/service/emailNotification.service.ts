@@ -43,7 +43,7 @@ export async function getWorkspaceRecipientsByRole(
 }
 
 /**
- * Dispatch helper with Redis Queue + direct SMTP fallback for high availability.
+ * Dispatch helper with Service Bus queue + direct SMTP fallback.
  */
 async function safeEnqueueOrSendEmail(jobData: {
   type:
@@ -61,7 +61,7 @@ async function safeEnqueueOrSendEmail(jobData: {
     await addEmailJob(jobData);
     console.log(`[NotificationService] Enqueued ${jobData.type} email to ${jobData.to}`);
   } catch (queueErr) {
-    console.warn('[NotificationService] Redis queue offline/failed. Falling back to direct SMTP send:', queueErr);
+    console.warn('[NotificationService] Email queue offline/failed. Falling back to direct SMTP send:', queueErr);
     try {
       const transporter = nodemailer.createTransport({
         host: process.env.SMTP_HOST || 'smtp.gmail.com',

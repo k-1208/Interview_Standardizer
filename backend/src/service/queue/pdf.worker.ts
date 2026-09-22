@@ -67,7 +67,6 @@ export const stopPdfWorker = async () => {
 
   console.log('Shutting down PDF worker...');
   await receiver.close();
-  await serviceBusClient.close();
   isRunning = false;
 };
 
