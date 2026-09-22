@@ -10,9 +10,10 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const { meData, selectedWorkspaceId, setSelectedWorkspaceId, refreshMe, isLoading } = useWorkspace();
 
-  const activeWorkspace =
-    meData?.workspaces.find((membership) => membership.workspace.id === selectedWorkspaceId)?.workspace ||
-    meData?.workspaces[0]?.workspace;
+  const activeMembership =
+    meData?.workspaces.find((membership) => membership.workspace.id === selectedWorkspaceId) ||
+    meData?.workspaces[0];
+  const activeWorkspace = activeMembership?.workspace;
 
   const handleCreateOrganization = async (name: string) => {
     const workspace = await createWorkspace(name);
@@ -36,7 +37,12 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
           onClick={() => setSidebarOpen(false)}
         />
       ) : null}
-      <DashboardSidebar open={sidebarOpen} onToggle={() => setSidebarOpen(!sidebarOpen)} />
+      <DashboardSidebar
+        open={sidebarOpen}
+        onToggle={() => setSidebarOpen(!sidebarOpen)}
+        userName={meData?.name}
+        userRole={activeMembership?.role}
+      />
       <div className="flex-1 flex flex-col overflow-hidden">
         <DashboardHeader
           onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}

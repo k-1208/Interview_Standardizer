@@ -49,8 +49,7 @@ function LoginPageContent() {
     setErrorMessage("");
 
     try {
-      const data = await login({ email, password });
-      console.log("[login] response", data);
+      await login({ email, password });
 
       if (inviteToken) {
         await acceptInvite(inviteToken);
@@ -66,7 +65,7 @@ function LoginPageContent() {
   };
 
   return (
-    <main className="min-h-screen flex">
+    <main className="auth-shell min-h-screen flex">
       {/* Left Panel — Branding */}
       <section className="hidden lg:flex lg:w-1/2 login-gradient relative overflow-hidden items-center justify-center p-12">
         <div className="absolute inset-0 opacity-10">
@@ -95,7 +94,7 @@ function LoginPageContent() {
       </section>
 
       {/* Right Panel — Form */}
-      <section className="flex-1 flex items-center justify-center p-6 sm:p-12 bg-slate-50">
+      <section className="flex-1 flex items-center justify-center p-6 sm:p-12 bg-[#f7f8fb]">
         <div className="w-full max-w-sm slide-up">
           {/* Mobile logo */}
           <div className="flex items-center gap-3 mb-10 lg:hidden">
@@ -106,13 +105,13 @@ function LoginPageContent() {
           </div>
 
           <header className="mb-8">
-            <h2 className="text-3xl font-bold text-gray-900">Welcome back</h2>
-            <p className="text-gray-500 mt-1">Sign in to your account to continue</p>
+            <h2 className="text-3xl font-bold text-slate-900">Welcome back</h2>
+            <p className="text-slate-500 mt-1">Sign in to your account to continue</p>
           </header>
 
           <form onSubmit={handleLogin} className="space-y-5">
             <div className="space-y-2">
-              <Label htmlFor="email" className="text-sm font-medium text-gray-700">
+              <Label htmlFor="email" className="text-sm font-medium text-slate-700">
                 Email address
               </Label>
               <Input
@@ -121,14 +120,14 @@ function LoginPageContent() {
                 placeholder="you@company.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="h-12 bg-white border-gray-300 focus:border-indigo-500 rounded-lg shadow-sm"
+                className="h-12 bg-white text-slate-900 placeholder:text-slate-400 border-slate-200 focus:border-indigo-500 rounded-lg shadow-sm"
                 required
               />
             </div>
 
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <Label htmlFor="password" className="text-sm font-medium text-gray-700">
+                <Label htmlFor="password" className="text-sm font-medium text-slate-700">
                   Password
                 </Label>
                 <button type="button" className="text-xs text-indigo-600 hover:text-indigo-700 font-medium transition-colors">
@@ -142,13 +141,13 @@ function LoginPageContent() {
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="h-12 bg-white text-gray-900 placeholder:text-gray-400 border-gray-300 focus:border-indigo-500 rounded-lg shadow-sm pr-10"
+                  className="h-12 bg-white text-slate-900 placeholder:text-slate-400 border-slate-200 focus:border-indigo-500 rounded-lg shadow-sm pr-10"
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 transition-colors"
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
@@ -177,7 +176,7 @@ function LoginPageContent() {
             ) : null}
           </form>
 
-          <p className="mt-8 text-center text-sm text-gray-500">
+          <p className="mt-8 text-center text-sm text-slate-500">
             Don&apos;t have an account?{" "}
             <button
               type="button"
@@ -197,7 +196,7 @@ export default function LoginPage() {
   return (
     <Suspense
       fallback={
-        <main className="min-h-screen flex items-center justify-center bg-slate-50">
+        <main className="auth-shell min-h-screen flex items-center justify-center">
           <div className="h-10 w-10 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
         </main>
       }

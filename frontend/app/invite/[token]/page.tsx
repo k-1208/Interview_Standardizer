@@ -73,9 +73,8 @@ export default function InviteTokenPage() {
     setErrorMessage("");
 
     try {
-      const data = await acceptInvite(token);
-      const workspaceSlug = data?.workspace?.slug || invite?.workspace.slug;
-      router.push(workspaceSlug ? `/dashboard` : "/dashboard");
+      await acceptInvite(token);
+      router.push("/dashboard");
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to accept invitation";
       setErrorMessage(message);
@@ -95,7 +94,7 @@ export default function InviteTokenPage() {
   };
 
   return (
-    <main className="min-h-screen flex items-center justify-center bg-slate-50 px-4">
+    <main className="auth-shell min-h-screen flex items-center justify-center px-4">
       <div className="w-full max-w-lg rounded-2xl border border-border bg-card p-8" style={{ boxShadow: "var(--shadow-sm)" }}>
         <h1 className="text-2xl font-semibold text-foreground">{headerText}</h1>
         <p className="text-sm text-muted-foreground mt-2">

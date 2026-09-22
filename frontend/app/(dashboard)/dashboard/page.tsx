@@ -1,10 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import KpiCards from "@/components/dashboard/KpiCards";
 import RecentCandidatesTable from "@/components/dashboard/RecentCandidates";
-import { Button } from "@/components/ui/button";
 import { getProfile } from "@/api/user";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 
@@ -15,20 +14,21 @@ export default function DashboardHome() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (!selectedWorkspaceId) return;
+    const workspaceId = Number(selectedWorkspaceId);
+    if (!Number.isFinite(workspaceId) || workspaceId <= 0) return;
 
     let isMounted = true;
     setIsLoading(true);
 
     const loadProfile = async () => {
       try {
-        const data = await getProfile(selectedWorkspaceId);
+        const data = await getProfile(workspaceId);
         if (isMounted) {
-          console.log("[dashboard] profile data", data);
           setProfileData(data);
         }
       } catch (error) {
-        console.error("[dashboard] failed to load profile", error);
+        const message = error instanceof Error ? error.message : String(error);
+        console.error("[dashboard] failed to load profile:", message);
       } finally {
         if (isMounted) {
           setIsLoading(false);
@@ -43,20 +43,25 @@ export default function DashboardHome() {
     };
   }, [selectedWorkspaceId]);
 
-  const memoizedProfileData = useMemo(() => profileData, [profileData]);
-
   return (
     <div className="space-y-8 fade-in">
-      <KpiCards kpisData={memoizedProfileData} />
+      <KpiCards kpisData={profileData} isLoading={isLoading} />
 
       <section>
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-base font-semibold text-foreground">Recent Candidates</h2>
-          <Button variant="outline" size="sm" onClick={() => router.push("/candidates")} className="text-xs">
-            View All
-          </Button>
+          <h2 className="text-base font-semibold text-foreground">Recent candidates</h2>
+          <button
+            type="button"
+            onClick={() => router.push("/candidates")}
+            className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            View all →
+          </button>
         </div>
-        <RecentCandidatesTable candidates={memoizedProfileData?.dashboard?.recentCandidates} />
+        <RecentCandidatesTable
+          candidates={profileData?.dashboard?.recentCandidates}
+          isLoading={isLoading}
+        />
       </section>
     </div>
   );

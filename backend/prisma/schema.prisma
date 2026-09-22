@@ -121,6 +121,7 @@ model User {
   workspaces        WorkspaceMember[]
   invitationsSent   Invitation[]
   interviewSessions InterviewSession[]
+  assignedCandidates Candidate[]      @relation("AssignedCandidates")
 
   @@map("users")
 }
@@ -148,8 +149,10 @@ model Candidate {
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
   workspaceId      Int
+  assignedReviewerId Int?
 
   workspace          Workspace           @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  assignedReviewer   User?               @relation("AssignedCandidates", fields: [assignedReviewerId], references: [id], onDelete: SetNull)
   essays             Essay[]
   parsedFields       ParsedField[]
   academicRecords    AcademicRecord[]

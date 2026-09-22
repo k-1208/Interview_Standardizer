@@ -42,3 +42,63 @@ export const createWorkspace = async (name: string): Promise<CreatedWorkspace> =
 
 	return raw.data;
 };
+
+export type WorkspaceMemberRole = 'admin' | 'reviewer';
+
+export interface WorkspaceMemberProfile {
+	id: number;
+	name: string;
+	email: string;
+	organizationName: string;
+	role: string;
+	joinedAt: string;
+	createdAt?: string;
+	assignedCandidateCount?: number;
+}
+
+const workspaceMemberRequest = async <T>(
+	workspaceId: number,
+	userId: number,
+	init?: RequestInit
+): Promise<T> => {
+	const token = getStoredToken();
+	const response = await fetch(`${BACKEND_BASE_URL}/api/workspaces/${workspaceId}/members/${userId}`, {
+		credentials: 'include',
+		headers: {
+			'Content-Type': 'application/json',
+			'ngrok-skip-browser-warning': 'true',
+			...(token ? { Authorization: `Bearer ${token}` } : {}),
+		},
+		...init,
+	});
+
+	const raw = (await response.json().catch(() => ({}))) as ApiResponse<T>;
+
+	if (!response.ok || !raw.success) {
+		throw new Error(raw.message || 'Request failed');
+	}
+
+	return raw.data as T;
+};
+
+export const getWorkspaceMember = async (
+	workspaceId: number,
+	userId: number
+): Promise<WorkspaceMemberProfile> => {
+	return workspaceMemberRequest<WorkspaceMemberProfile>(workspaceId, userId, { method: 'GET' });
+};
+
+export const updateWorkspaceMemberRole = async (
+	workspaceId: number,
+	userId: number,
+	role: WorkspaceMemberRole
+): Promise<WorkspaceMemberProfile> => {
+	return workspaceMemberRequest<WorkspaceMemberProfile>(workspaceId, userId, {
+		method: 'PATCH',
+		body: JSON.stringify({ role }),
+	});
+};
+
+export const removeWorkspaceMember = async (workspaceId: number, userId: number): Promise<{ id: number; removed: boolean }> => {
+	return workspaceMemberRequest<{ id: number; removed: boolean }>(workspaceId, userId, { method: 'DELETE' });
+};

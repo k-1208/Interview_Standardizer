@@ -1,6 +1,7 @@
 import type { Request, Response } from "express";
 import { getUser } from "../service/user.service.js";
 import { inviteWorkspaceMember, validateInvitationToken, acceptInvitation } from "../service/invite.service.js";
+import { prisma } from "../utils/prismaClient.js";
 
 export const getProfile = async (req: Request, res: Response): Promise<void> => {
   if (!req.user?.userId) {
@@ -8,14 +9,29 @@ export const getProfile = async (req: Request, res: Response): Promise<void> => 
     return;
   }
 
-  const workspaceId = Number(req.query.workspaceId);
-
-  if (!Number.isFinite(workspaceId) || workspaceId <= 0) {
-    res.status(400).json({ success: false, message: "Valid workspaceId is required" });
-    return;
-  }
+  let workspaceId = Number(req.query.workspaceId);
 
   try {
+    // Fall back to the user's first workspace when the client omits/sends an invalid workspaceId
+    // (e.g. race before WorkspaceContext hydrates, or stale localStorage).
+    if (!Number.isFinite(workspaceId) || workspaceId <= 0) {
+      const membership = await prisma.workspaceMember.findFirst({
+        where: { userId: req.user.userId },
+        orderBy: { joinedAt: "asc" },
+        select: { workspaceId: true },
+      });
+
+      if (!membership) {
+        res.status(400).json({
+          success: false,
+          message: "Valid workspaceId is required — user has no workspace memberships",
+        });
+        return;
+      }
+
+      workspaceId = membership.workspaceId;
+    }
+
     const data = await getUser(req.user.userId, workspaceId);
     res.status(200).json({ success: true, data });
   } catch (error: any) {

@@ -320,3 +320,140 @@ This is an automated invitation email. Please do not reply directly.`;
 		textContent,
 	};
 };
+
+interface InterviewCompletedTemplateData {
+	candidateName: string;
+	workspaceName: string;
+	summarySnippet: string;
+	candidateId: number;
+	portalUrl: string;
+}
+
+interface CandidateAssignedTemplateData {
+	reviewerName: string;
+	candidateName: string;
+	workspaceName: string;
+	candidateId: number;
+	portalUrl: string;
+}
+
+export const generateInterviewCompletedNotificationTemplate = (data: InterviewCompletedTemplateData) => {
+	const candidateName = (data.candidateName || 'Candidate').trim();
+	const workspaceName = (data.workspaceName || 'Workspace').trim();
+	const summarySnippet = (data.summarySnippet || 'Interview transcript analysis complete. Log in to review full details.').trim();
+	const portalUrl = (data.portalUrl || '').trim();
+
+	const safeCandidateName = escapeHtml(candidateName);
+	const safeWorkspaceName = escapeHtml(workspaceName);
+	const safeSummarySnippet = escapeHtml(summarySnippet);
+	const safePortalUrl = escapeHtml(portalUrl);
+
+	const subject = `[Interview Complete] ${candidateName} — ${workspaceName}`;
+
+	const htmlContent = `
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>${escapeHtml(subject)}</title>
+		<style>
+			body { margin: 0; padding: 0; background: #f8fafc; color: #1e293b; font-family: Arial, sans-serif; line-height: 1.6; }
+			.container { max-width: 640px; margin: 24px auto; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; }
+			.header { background: linear-gradient(135deg, #4f46e5, #6366f1); color: #ffffff; padding: 24px; text-align: center; }
+			.header h1 { margin: 0; font-size: 22px; }
+			.content { padding: 24px; }
+			.summary-card { margin: 16px 0; padding: 16px; background: #f1f5f9; border-left: 4px solid #4f46e5; border-radius: 8px; font-size: 14px; }
+			.button-wrap { text-align: center; margin: 24px 0; }
+			.button { display: inline-block; background: #4f46e5; color: #ffffff !important; text-decoration: none; font-weight: 700; padding: 12px 24px; border-radius: 8px; }
+			.footer { border-top: 1px solid #e2e8f0; padding: 16px 24px; font-size: 12px; color: #64748b; text-align: center; }
+		</style>
+	</head>
+	<body>
+		<div class="container">
+			<div class="header">
+				<h1>Interview Analysis Ready</h1>
+			</div>
+			<div class="content">
+				<p>Hello Team,</p>
+				<p>The automated interview for <strong>${safeCandidateName}</strong> in <strong>${safeWorkspaceName}</strong> has completed and transcript analysis is available.</p>
+				
+				<div class="summary-card">
+					<strong>AI Summary Snippet:</strong><br />
+					${safeSummarySnippet}
+				</div>
+
+				<div class="button-wrap">
+					<a class="button" href="${safePortalUrl}" target="_blank" rel="noopener noreferrer">View Full Candidate Profile</a>
+				</div>
+			</div>
+			<div class="footer">
+				Automated notification from Interview Standardizer.
+			</div>
+		</div>
+	</body>
+</html>
+`;
+
+	const textContent = `Interview Analysis Ready: ${candidateName} (${workspaceName})\n\nAI Summary:\n${summarySnippet}\n\nReview candidate profile:\n${portalUrl}`;
+
+	return { subject, htmlContent, textContent };
+};
+
+export const generateCandidateAssignedTemplate = (data: CandidateAssignedTemplateData) => {
+	const reviewerName = (data.reviewerName || 'Reviewer').trim();
+	const candidateName = (data.candidateName || 'Candidate').trim();
+	const workspaceName = (data.workspaceName || 'Workspace').trim();
+	const portalUrl = (data.portalUrl || '').trim();
+
+	const safeReviewerName = escapeHtml(reviewerName);
+	const safeCandidateName = escapeHtml(candidateName);
+	const safeWorkspaceName = escapeHtml(workspaceName);
+	const safePortalUrl = escapeHtml(portalUrl);
+
+	const subject = `[Candidate Assigned] ${candidateName} — ${workspaceName}`;
+
+	const htmlContent = `
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>${escapeHtml(subject)}</title>
+		<style>
+			body { margin: 0; padding: 0; background: #f8fafc; color: #1e293b; font-family: Arial, sans-serif; line-height: 1.6; }
+			.container { max-width: 640px; margin: 24px auto; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; }
+			.header { background: linear-gradient(135deg, #0284c7, #06b6d4); color: #ffffff; padding: 24px; text-align: center; }
+			.header h1 { margin: 0; font-size: 22px; }
+			.content { padding: 24px; }
+			.button-wrap { text-align: center; margin: 24px 0; }
+			.button { display: inline-block; background: #0284c7; color: #ffffff !important; text-decoration: none; font-weight: 700; padding: 12px 24px; border-radius: 8px; }
+			.footer { border-top: 1px solid #e2e8f0; padding: 16px 24px; font-size: 12px; color: #64748b; text-align: center; }
+		</style>
+	</head>
+	<body>
+		<div class="container">
+			<div class="header">
+				<h1>New Candidate Assignment</h1>
+			</div>
+			<div class="content">
+				<p>Hello <strong>${safeReviewerName}</strong>,</p>
+				<p>You have been assigned as the primary reviewer for candidate <strong>${safeCandidateName}</strong> in <strong>${safeWorkspaceName}</strong>.</p>
+				
+				<div class="button-wrap">
+					<a class="button" href="${safePortalUrl}" target="_blank" rel="noopener noreferrer">Review Candidate Profile</a>
+				</div>
+			</div>
+			<div class="footer">
+				Automated notification from Interview Standardizer.
+			</div>
+		</div>
+	</body>
+</html>
+`;
+
+	const textContent = `Hello ${reviewerName},\n\nYou have been assigned candidate ${candidateName} in ${workspaceName}.\n\nReview profile: ${portalUrl}`;
+
+	return { subject, htmlContent, textContent };
+};
+

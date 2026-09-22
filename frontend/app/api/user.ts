@@ -14,19 +14,23 @@ interface ApiResponse<T> {
 	data?: T;
 }
 
-export const getProfile = async (workspaceId: number): Promise<any> => {
+export const getProfile = async (workspaceId?: number): Promise<any> => {
 	const token = getStoredToken();
-	const response = await fetch(
-		`${BACKEND_BASE_URL}/api/user/profile?workspaceId=${encodeURIComponent(String(workspaceId))}`,
-		{
+	const parsedId = workspaceId === undefined || workspaceId === null ? NaN : Number(workspaceId);
+	const hasValidId = Number.isFinite(parsedId) && parsedId > 0;
+
+	const url = hasValidId
+		? `${BACKEND_BASE_URL}/api/user/profile?workspaceId=${encodeURIComponent(String(parsedId))}`
+		: `${BACKEND_BASE_URL}/api/user/profile`;
+
+	const response = await fetch(url, {
 		credentials: 'include',
 		headers: {
 			'Content-Type': 'application/json',
 			'ngrok-skip-browser-warning': 'true',
 			...(token ? { Authorization: `Bearer ${token}` } : {}),
 		},
-		}
-	);
+	});
 
 	const raw = (await response.json().catch(() => ({}))) as ApiResponse<any>;
 

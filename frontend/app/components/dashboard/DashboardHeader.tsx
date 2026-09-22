@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Menu, Bell, Search, LogOut, Upload, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import ThemeToggle from "@/components/dashboard/ThemeToggle";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -100,7 +101,7 @@ const DashboardHeader = ({
   };
 
   return (
-    <header className="h-14 border-b border-border bg-card/60 backdrop-blur-sm flex items-center justify-between px-4 sm:px-6 flex-shrink-0">
+    <header className="h-14 border-b border-border bg-surface flex items-center justify-between px-4 sm:px-6 flex-shrink-0">
       <div className="flex items-center gap-3">
         <Button
           variant="ghost"
@@ -111,7 +112,12 @@ const DashboardHeader = ({
           <Menu className="w-5 h-5" />
         </Button>
 
-        <h1 className="text-base font-semibold text-foreground">{pageTitle}</h1>
+        {pathname === "/dashboard" ||
+        pathname === "/candidates" ||
+        pathname === "/settings" ||
+        pathname.startsWith("/candidate/") ? null : (
+          <h1 className="text-base font-semibold text-foreground">{pageTitle}</h1>
+        )}
 
         <div className="hidden md:flex items-center gap-2 min-w-48">
           {workspaces && workspaces.length > 0 ? (
@@ -150,7 +156,7 @@ const DashboardHeader = ({
       </div>
 
       <div className="flex items-center gap-2">
-        <div className="hidden sm:flex items-center gap-2 bg-secondary/60 rounded-md px-3 py-1.5 w-56 border border-border">
+        <div className="hidden sm:flex items-center gap-2 bg-background rounded-full px-3 py-1.5 w-56 border border-border">
           <Search className="w-4 h-4 text-muted-foreground flex-shrink-0" />
           <input
             type="text"
@@ -169,6 +175,8 @@ const DashboardHeader = ({
         </Button>
 
         {actions}
+
+        <ThemeToggle />
 
         <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground relative">
           <Bell className="w-4 h-4" />

@@ -127,10 +127,26 @@ export const mockCandidates: CandidateProfile[] = [
 ];
 
 export const statusConfig = {
-  pending: { label: "Pending Review", className: "bg-amber-100 text-amber-800" },
-  reviewed: { label: "Interview Ready", className: "bg-green-100 text-green-800" },
-  interviewing: { label: "Interviewed", className: "bg-purple-100 text-purple-800" },
-  completed: { label: "Parsed", className: "bg-blue-100 text-blue-800" },
+  pending: {
+    label: "Pending review",
+    className: "bg-amber-500/10 text-amber-700 dark:text-amber-300 ring-1 ring-inset ring-amber-500/20",
+    dotClass: "bg-amber-500",
+  },
+  reviewed: {
+    label: "Interview ready",
+    className: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 ring-1 ring-inset ring-emerald-500/20",
+    dotClass: "bg-emerald-500",
+  },
+  interviewing: {
+    label: "Interviewed",
+    className: "bg-violet-500/10 text-violet-700 dark:text-violet-300 ring-1 ring-inset ring-violet-500/20",
+    dotClass: "bg-violet-500",
+  },
+  completed: {
+    label: "Parsed",
+    className: "bg-sky-500/10 text-sky-700 dark:text-sky-300 ring-1 ring-inset ring-sky-500/20",
+    dotClass: "bg-sky-500",
+  },
 };
 
 export interface InterviewQuestion {

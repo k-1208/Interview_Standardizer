@@ -35,15 +35,25 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     const data = await me();
     setMeData(data);
 
+    const memberships = data.workspaces ?? [];
     const storedRaw = window.localStorage.getItem(SELECTED_WORKSPACE_KEY);
-    const storedId = storedRaw ? Number(storedRaw) : undefined;
+    const storedId = storedRaw ? Number(storedRaw) : NaN;
     const validStored =
-      storedId && data.workspaces.some((m) => m.workspace.id === storedId) ? storedId : undefined;
-    const nextId = validStored ?? data.workspaces[0]?.workspace.id;
+      Number.isFinite(storedId) &&
+      storedId > 0 &&
+      memberships.some((m) => Number(m.workspace.id) === storedId)
+        ? storedId
+        : undefined;
+    const firstId = memberships[0] ? Number(memberships[0].workspace.id) : NaN;
+    const nextId =
+      validStored ??
+      (Number.isFinite(firstId) && firstId > 0 ? firstId : undefined);
 
     setSelectedWorkspaceIdState(nextId);
     if (nextId) {
       window.localStorage.setItem(SELECTED_WORKSPACE_KEY, String(nextId));
+    } else {
+      window.localStorage.removeItem(SELECTED_WORKSPACE_KEY);
     }
   }, []);
 
@@ -80,8 +90,11 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
 
   const setSelectedWorkspaceId = useCallback(
     (workspaceId: number) => {
-      setSelectedWorkspaceIdState(workspaceId);
-      window.localStorage.setItem(SELECTED_WORKSPACE_KEY, String(workspaceId));
+      const nextId = Number(workspaceId);
+      if (!Number.isFinite(nextId) || nextId <= 0) return;
+
+      setSelectedWorkspaceIdState(nextId);
+      window.localStorage.setItem(SELECTED_WORKSPACE_KEY, String(nextId));
 
       if (pathname?.startsWith("/candidate/")) {
         router.push("/dashboard");
