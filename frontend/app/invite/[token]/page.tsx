@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { acceptInvite, emailsMatch, validateInvite } from "@/api/invite";
 import { clearStoredToken, getStoredToken, logout, me, register } from "@/api/auth";
@@ -89,11 +89,6 @@ export default function InviteTokenPage() {
     };
   }, [token, router]);
 
-  const headerText = useMemo(() => {
-    if (!invite) return "Workspace Invitation";
-    return `Join ${invite.workspace.name}`;
-  }, [invite]);
-
   const handleAccept = async () => {
     if (!token) return;
     setIsAccepting(true);
@@ -165,10 +160,10 @@ export default function InviteTokenPage() {
   return (
     <main className="auth-shell min-h-screen flex items-center justify-center px-4">
       <div className="w-full max-w-lg rounded-2xl border border-border bg-card p-8" style={{ boxShadow: "var(--shadow-sm)" }}>
-        <h1 className="text-2xl font-semibold text-foreground">{headerText}</h1>
+        <h1 className="text-2xl font-semibold text-foreground">Accept invitation</h1>
         <p className="text-sm text-muted-foreground mt-2">
           {invite
-            ? `You were invited to join ${invite.workspace.name} as ${invite.role.replace("_", " ")}.`
+            ? `Accepting invitation from ${invite.workspace.name}. You will join this organization as ${invite.role.replace("_", " ")}. A new organization will not be created.`
             : "We are validating your invitation."}
         </p>
 
@@ -186,7 +181,7 @@ export default function InviteTokenPage() {
           <div className="mt-6 space-y-4">
             <div className="rounded-lg border border-border/70 bg-background p-4">
               <div className="flex items-center justify-between">
-                <span className="text-xs text-muted-foreground">Organization</span>
+                <span className="text-xs text-muted-foreground">Organization (from invitation)</span>
                 <span className="text-sm font-medium text-foreground">{invite.workspace.name}</span>
               </div>
               <div className="flex items-center justify-between mt-2">
@@ -205,12 +200,12 @@ export default function InviteTokenPage() {
                 onClick={handleAccept}
                 disabled={isAccepting}
               >
-                {isAccepting ? "Accepting..." : "Accept Invitation"}
+                {isAccepting ? "Accepting invitation..." : `Accept invitation from ${invite.workspace.name}`}
               </button>
             ) : needsNewAccount ? (
               <form className="space-y-4" onSubmit={handleCreateAccount}>
                 <p className="text-sm text-muted-foreground">
-                  No account exists for this email yet. Set a password to join {invite.workspace.name}.
+                  No account exists for this email yet. Set a password to accept the invitation from {invite.workspace.name}.
                 </p>
                 <div>
                   <label className="text-xs font-medium text-foreground block mb-1">Password</label>
@@ -241,7 +236,7 @@ export default function InviteTokenPage() {
                   className="w-full rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
                   disabled={isAccepting}
                 >
-                  {isAccepting ? "Joining..." : `Join ${invite.workspace.name}`}
+                  {isAccepting ? "Accepting invitation..." : `Accept invitation from ${invite.workspace.name}`}
                 </button>
                 <button
                   type="button"
@@ -256,7 +251,7 @@ export default function InviteTokenPage() {
                 className="w-full rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
                 onClick={handleLogin}
               >
-                Sign in to accept
+                Sign in to accept invitation
               </button>
             )}
           </div>

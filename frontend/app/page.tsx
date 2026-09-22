@@ -18,6 +18,29 @@ function LoginPageContent() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [inviteWorkspaceName, setInviteWorkspaceName] = useState("");
+
+  useEffect(() => {
+    if (!inviteToken) return;
+    let isMounted = true;
+
+    const loadInvite = async () => {
+      try {
+        const invitation = await validateInvite(inviteToken);
+        if (!isMounted) return;
+        setInviteWorkspaceName(invitation.workspace?.name || "");
+        setEmail((current) => current || invitation.email || "");
+      } catch {
+        // Keep the login form usable even if the invite token is invalid.
+      }
+    };
+
+    loadInvite();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [inviteToken]);
 
   useEffect(() => {
     const token = getStoredToken();
@@ -115,8 +138,14 @@ function LoginPageContent() {
           </div>
 
           <header className="mb-8">
-            <h2 className="text-3xl font-bold text-slate-900">Welcome back</h2>
-            <p className="text-slate-500 mt-1">Sign in to your account to continue</p>
+            <h2 className="text-3xl font-bold text-slate-900">
+              {inviteWorkspaceName ? "Accept invitation" : "Welcome back"}
+            </h2>
+            <p className="text-slate-500 mt-1">
+              {inviteWorkspaceName
+                ? `Accepting invitation from ${inviteWorkspaceName}. Sign in to join this organization.`
+                : "Sign in to your account to continue"}
+            </p>
           </header>
 
           <form onSubmit={handleLogin} className="space-y-5">
@@ -130,6 +159,7 @@ function LoginPageContent() {
                 placeholder="you@company.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                readOnly={!!inviteToken && !!inviteWorkspaceName}
                 className="h-12 bg-white text-slate-900 placeholder:text-slate-400 border-slate-200 focus:border-indigo-500 rounded-lg shadow-sm"
                 required
               />
@@ -172,11 +202,11 @@ function LoginPageContent() {
               {isLoading ? (
                 <span className="flex items-center gap-2">
                   <span className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
-                  Signing in…
+                  {inviteToken ? "Accepting invitation…" : "Signing in…"}
                 </span>
               ) : (
                 <span className="flex items-center gap-2">
-                  Sign in <ArrowRight className="w-4 h-4" />
+                  {inviteToken ? "Accept invitation" : "Sign in"} <ArrowRight className="w-4 h-4" />
                 </span>
               )}
             </Button>
@@ -190,7 +220,7 @@ function LoginPageContent() {
             Don&apos;t have an account?{" "}
             <button
               type="button"
-              onClick={() => router.push("/register")}
+              onClick={() => router.push(inviteToken ? `/register?inviteToken=${inviteToken}` : "/register")}
               className="text-indigo-600 font-semibold hover:text-indigo-700 transition-colors"
             >
               Request access

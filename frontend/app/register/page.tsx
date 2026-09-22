@@ -23,6 +23,7 @@ function RegisterPageContent() {
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [inviteWorkspaceName, setInviteWorkspaceName] = useState<string | null>(null);
+  const [inviteInviter, setInviteInviter] = useState<string | null>(null);
 
   useEffect(() => {
     if (!inviteToken) return;
@@ -34,6 +35,7 @@ function RegisterPageContent() {
         if (!isMounted) return;
         setEmail(data.email);
         setInviteWorkspaceName(data.workspace.name);
+        setInviteInviter(data.invitedBy?.name || null);
       } catch (error) {
         if (!isMounted) return;
         const message = error instanceof Error ? error.message : "Invalid invitation";
@@ -141,11 +143,11 @@ function RegisterPageContent() {
 
           <header className="mb-8">
             <h2 className="text-3xl font-bold text-slate-900">
-              {inviteWorkspaceName ? `Join ${inviteWorkspaceName}` : "Request access"}
+              {inviteWorkspaceName ? "Accept invitation" : "Request access"}
             </h2>
             <p className="text-slate-500 mt-1">
               {inviteWorkspaceName
-                ? `Set a password to join ${inviteWorkspaceName}. Your email and organization are already filled in.`
+                ? `Accepting invitation from ${inviteWorkspaceName}${inviteInviter ? ` (invited by ${inviteInviter})` : ""}. Set a password to join this organization. A new organization will not be created.`
                 : "Create your account to get started"}
             </p>
           </header>
@@ -187,7 +189,7 @@ function RegisterPageContent() {
             {inviteToken && inviteWorkspaceName ? (
               <div className="space-y-2">
                 <Label htmlFor="organizationName" className="text-sm font-medium text-slate-700">
-                  Organization
+                  Organization (from invitation)
                 </Label>
                 <Input
                   id="organizationName"
@@ -196,6 +198,7 @@ function RegisterPageContent() {
                   readOnly
                   className="h-12 bg-slate-50 text-slate-900 border-slate-200 rounded-lg shadow-sm"
                 />
+                <p className="text-xs text-slate-500">You are joining this existing organization.</p>
               </div>
             ) : (
               <div className="space-y-2">
@@ -270,11 +273,11 @@ function RegisterPageContent() {
               {isLoading ? (
                 <span className="flex items-center gap-2">
                   <span className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
-                  {inviteToken ? "Joining..." : "Creating account..."}
+                  {inviteToken ? "Accepting invitation..." : "Creating account..."}
                 </span>
               ) : (
                 <span className="flex items-center gap-2">
-                  {inviteToken ? "Join organization" : "Create account"} <ArrowRight className="w-4 h-4" />
+                  {inviteToken ? "Accept invitation" : "Create account"} <ArrowRight className="w-4 h-4" />
                 </span>
               )}
             </Button>
@@ -286,7 +289,7 @@ function RegisterPageContent() {
             Already have an account?{" "}
             <button
               type="button"
-              onClick={() => router.push("/")}
+              onClick={() => router.push(inviteToken ? `/?inviteToken=${inviteToken}` : "/")}
               className="cursor-pointer text-indigo-600 font-semibold hover:text-indigo-700 transition-colors"
             >
               Sign in
