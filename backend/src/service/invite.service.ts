@@ -105,12 +105,18 @@ export const validateInvitationToken = async (token: string) => {
 		throw new Error('Invitation expired or already used');
 	}
 
+	const existingUser = await prisma.user.findUnique({
+		where: { email: invitation.email.toLowerCase() },
+		select: { id: true },
+	});
+
 	return {
 		email: invitation.email,
 		role: invitation.role,
 		expiresAt: invitation.expiresAt,
 		workspace: invitation.workspace,
 		invitedBy: invitation.invitedBy,
+		accountExists: Boolean(existingUser),
 	};
 };
 

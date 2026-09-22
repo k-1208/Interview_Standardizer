@@ -174,9 +174,9 @@ export default function CandidateDatabasePage() {
             : candidate
         )
       );
-      setAssignSuccess("Evaluator assigned successfully.");
+      setAssignSuccess("");
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to assign evaluator";
+      const message = error instanceof Error ? error.message : "Couldn't assign evaluator. Please try again.";
       console.error("[candidates] failed to assign reviewer", error);
       setAssignSuccess(message);
     } finally {

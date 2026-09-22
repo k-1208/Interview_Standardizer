@@ -5,9 +5,11 @@ import { PrismaClient } from '../../generated/prisma/client.js';
 
 dotenv.config();
 
+const stripWrappingQuotes = (value: string) => value.replace(/^['"]|['"]$/g, '');
+
 const buildConnectionString = (): string => {
 	if (process.env.DATABASE_URL) {
-		return process.env.DATABASE_URL;
+		return stripWrappingQuotes(process.env.DATABASE_URL);
 	}
 
 	const dbHost = process.env.DATABASE_HOST || process.env.DB_HOST;

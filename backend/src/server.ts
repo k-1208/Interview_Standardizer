@@ -18,9 +18,6 @@ try {
     const PORT = parseInt(process.env.PORT || '4000');
     const httpServer = http.createServer(app);
 
-    startPdfWorker();
-    startEmailWorker();
-
     const shutdown = async (signal: string) => {
         console.log(`Received ${signal}; shutting down API and workers...`);
         await Promise.all([
@@ -37,6 +34,8 @@ try {
 
     httpServer.listen(PORT, async () => {
         console.log(`🚀 Server is running on http://localhost:${PORT}`);
+        startPdfWorker();
+        startEmailWorker();
     });
 } catch (error) {
     console.error('Error during server startup:', error);

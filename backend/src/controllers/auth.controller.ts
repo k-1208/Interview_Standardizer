@@ -9,11 +9,12 @@ const COOKIE_OPTIONS = {
 };
 
 export async function register(req: Request, res: Response): Promise<void> {
-  const { name, organizationName, email, password, inviteToken } = req.body;
+  const { organizationName, email, password, inviteToken } = req.body;
+  let { name } = req.body;
 
-  if (!name || !email || !password) {
+  if (!email || !password) {
     console.log('[auth/register] Validation failed: missing required fields');
-    res.status(400).json({ success: false, message: 'name, email and password are required' });
+    res.status(400).json({ success: false, message: 'email and password are required' });
     return;
   }
 
@@ -22,10 +23,13 @@ export async function register(req: Request, res: Response): Promise<void> {
       res.status(400).json({ success: false, message: 'inviteToken must be a string' });
       return;
     }
-  } else if (!organizationName) {
+    if (!name) {
+      name = String(email).split('@')[0];
+    }
+  } else if (!name || !organizationName) {
     res.status(400).json({
       success: false,
-      message: 'organizationName is required when not registering with an invite',
+      message: 'name and organizationName are required when not registering with an invite',
     });
     return;
   }

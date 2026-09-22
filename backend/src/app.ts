@@ -13,10 +13,12 @@ import workspaceRoutes from "./routes/workspace.routes.js";
 dotenv.config();
 
 const app = express();
+const extraFrontendUrl = process.env.FRONTEND_URL?.replace(/\/$/, "");
 const allowedOrigins = [
+  "https://interview-standardizer.vercel.app",
   "https://interviewiq-amber.vercel.app",
   "http://localhost:3000",
-  ...(process.env.FRONTEND_URL ? [process.env.FRONTEND_URL] : []),
+  ...(extraFrontendUrl ? [extraFrontendUrl] : []),
 ];
 
 const corsOptions: cors.CorsOptions = {
