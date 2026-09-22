@@ -10,7 +10,6 @@ export interface EmailJobData {
   subject: string;
   html: string;
   text: string;
-  from?: string;
   cc?: string[];
   metadata?: Record<string, unknown>;
 }

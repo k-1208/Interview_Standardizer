@@ -16,7 +16,7 @@ interface ApiResponse<T> {
 
 export interface InviteMemberInput {
 	email: string;
-	role?: 'super_admin' | 'admin' | 'reviewer';
+	role?: 'admin' | 'reviewer';
 	workspaceId: number;
 }
 

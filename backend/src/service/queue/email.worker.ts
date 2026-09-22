@@ -23,11 +23,11 @@ const processEmailJob = async (message: ServiceBusReceivedMessage) => {
   const { to, subject, html, text, from, cc, type } = jobData;
   console.log(`[EmailWorker] Processing ${type} -> To: ${to}`);
 
-  const mailFrom = from || process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER;
+    const mailFrom = from || process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER;
 
-  if (!to) {
-    throw new Error('[EmailWorker] Recipient email is required');
-  }
+    if (!to) {
+      throw new Error('[EmailWorker] Recipient email is required');
+    }
 
   const info = await transporter.sendMail({
     from: mailFrom,

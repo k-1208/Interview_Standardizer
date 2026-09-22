@@ -1,7 +1,7 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { prisma } from '../utils/prismaClient.js';
-import { createWorkspaceForUserInTransaction } from './workspace.service.js';
+import { createWorkspaceForUserInTransaction, isInviteRole } from './workspace.service.js';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'changeme_use_strong_secret_in_env';
 const JWT_EXPIRES_IN = '7d';
@@ -83,6 +83,10 @@ export async function registerUserFromInvitation(
 
   if (normalizedEmail !== invitation.email.toLowerCase()) {
     throw new Error('Email must match the invitation');
+  }
+
+  if (!isInviteRole(invitation.role)) {
+    throw new Error('Invitation role is invalid');
   }
 
   const existing = await prisma.user.findUnique({ where: { email: normalizedEmail } });

@@ -60,7 +60,7 @@ export async function requireWorkspaceAccess(
     if (!membership) {
       res.status(403).json({
         success: false,
-        message: `Forbidden — user ${req.user.userId} does not have access to workspace ${workspaceId}`,
+        message: 'Forbidden',
       });
       return;
     }
@@ -95,7 +95,7 @@ export function requireWorkspaceRole(allowedRoles: WorkspaceRole[]) {
     if (!allowedRoles.includes(req.membership.role)) {
       res.status(403).json({
         success: false,
-        message: `Forbidden — action requires one of the following roles: [${allowedRoles.join(', ')}]. Current role: ${req.membership.role}`,
+        message: 'Forbidden',
       });
       return;
     }

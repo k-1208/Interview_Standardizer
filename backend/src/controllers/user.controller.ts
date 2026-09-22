@@ -2,6 +2,7 @@ import type { Request, Response } from "express";
 import { getUser } from "../service/user.service.js";
 import { inviteWorkspaceMember, validateInvitationToken, acceptInvitation } from "../service/invite.service.js";
 import { prisma } from "../utils/prismaClient.js";
+import { isInviteRole, memberErrorStatus } from "../service/workspace.service.js";
 
 export const getProfile = async (req: Request, res: Response): Promise<void> => {
   if (!req.user?.userId) {
@@ -59,10 +60,16 @@ export const inviteMember = async (req: Request, res: Response): Promise<void> =
     return;
   }
 
+  const inviteRole = typeof role === "string" && role.trim() ? role.trim() : "reviewer";
+  if (!isInviteRole(inviteRole)) {
+    res.status(400).json({ success: false, message: "Role must be admin or reviewer" });
+    return;
+  }
+
   try {
     const invitation = await inviteWorkspaceMember({
       email,
-      role: role || "reviewer",
+      role: inviteRole,
       workspaceId: Number(workspaceId),
       invitedById: req.user.userId,
     });
@@ -70,7 +77,7 @@ export const inviteMember = async (req: Request, res: Response): Promise<void> =
     res.status(201).json({ success: true, data: invitation });
   } catch (error: any) {
     const message = error?.message || "Failed to send invitation";
-    res.status(500).json({ success: false, message });
+    res.status(memberErrorStatus(message)).json({ success: false, message });
   }
 };
 
