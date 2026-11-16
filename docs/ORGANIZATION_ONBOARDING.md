@@ -48,7 +48,7 @@ Optional later steps (product, not all built yet):
 ```bash
 JWT_SECRET=<long random string>   # required in production
 FRONTEND_URL=http://localhost:3000  # invite links in email
-# Database + Service Bus — see README
+# Database + Redis — see README
 # SMTP_* — required for invite emails
 ```
 

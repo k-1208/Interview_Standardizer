@@ -43,7 +43,7 @@ export async function getWorkspaceRecipientsByRole(
 }
 
 /**
- * Dispatch helper with Service Bus queue + direct SMTP fallback.
+ * Dispatch helper with Redis (BullMQ) queue + direct SMTP fallback.
  */
 async function safeEnqueueOrSendEmail(jobData: {
   type:

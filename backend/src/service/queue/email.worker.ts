@@ -1,6 +1,6 @@
-import type { ProcessErrorArgs, ServiceBusReceivedMessage } from '@azure/service-bus';
+import { Worker, type Job } from 'bullmq';
 import nodemailer from 'nodemailer';
-import { serviceBusClient, SERVICE_BUS_EMAIL_QUEUE_NAME } from '../../config/serviceBus.js';
+import { redisConnection, EMAIL_QUEUE_NAME } from '../../config/redis.js';
 import type { EmailJobData } from './email.queue.js';
 
 const transporter = nodemailer.createTransport({
@@ -13,13 +13,8 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-const receiver = serviceBusClient.createReceiver(SERVICE_BUS_EMAIL_QUEUE_NAME, {
-  receiveMode: 'peekLock',
-  maxAutoLockRenewalDurationInMs: 5 * 60 * 1000,
-});
-
-const processEmailJob = async (message: ServiceBusReceivedMessage) => {
-  const jobData = message.body as EmailJobData;
+const processEmailJob = async (job: Job<EmailJobData>) => {
+  const jobData = job.data;
   const { to, subject, html, text, from, cc, type } = jobData;
   console.log(`[EmailWorker] Processing ${type} -> To: ${to}`);
 
@@ -41,36 +36,31 @@ const processEmailJob = async (message: ServiceBusReceivedMessage) => {
   console.log(`[EmailWorker] Email sent successfully! MessageId: ${info.messageId}`);
 };
 
-let isRunning = false;
+let worker: Worker<EmailJobData> | null = null;
 
 export const startEmailWorker = () => {
-  if (isRunning) {
+  if (worker) {
     return;
   }
 
-  receiver.subscribe(
-    {
-      processMessage: processEmailJob,
-      processError: async (args: ProcessErrorArgs) => {
-        console.error('❌ Email worker error:', args.error);
-      },
-    },
-    {
-      maxConcurrentCalls: 2,
-      autoCompleteMessages: true,
-    }
-  );
+  worker = new Worker<EmailJobData>(EMAIL_QUEUE_NAME, processEmailJob, {
+    connection: redisConnection,
+    concurrency: 2,
+  });
 
-  isRunning = true;
-  console.log(`✅ Email worker listening on queue "${SERVICE_BUS_EMAIL_QUEUE_NAME}"`);
+  worker.on('error', (error) => {
+    console.error('❌ Email worker error:', error);
+  });
+
+  console.log(`✅ Email worker listening on queue "${EMAIL_QUEUE_NAME}"`);
 };
 
 export const stopEmailWorker = async () => {
-  if (!isRunning) {
+  if (!worker) {
     return;
   }
 
   console.log('Shutting down email worker...');
-  await receiver.close();
-  isRunning = false;
+  await worker.close();
+  worker = null;
 };

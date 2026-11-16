@@ -1,20 +1,13 @@
-import type { ProcessErrorArgs, ServiceBusReceivedMessage } from '@azure/service-bus';
-import { resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { serviceBusClient, SERVICE_BUS_QUEUE_NAME } from '../../config/serviceBus.js';
+import { Worker, type Job } from 'bullmq';
+import { redisConnection, PDF_QUEUE_NAME } from '../../config/redis.js';
 import { updateStatus } from '../upload.service.js';
 import { parseResumeFile, saveParsedResume } from '../resume.service.js';
 import type { PdfJobData } from './pdf.queue.js';
 
-const receiver = serviceBusClient.createReceiver(SERVICE_BUS_QUEUE_NAME, {
-  receiveMode: 'peekLock',
-  maxAutoLockRenewalDurationInMs: 15 * 60 * 1000,
-});
+const processPdfJob = async (job: Job<PdfJobData>) => {
+  const { fileId, workspaceId } = job.data;
 
-const processPdfJob = async (message: ServiceBusReceivedMessage) => {
-  const { fileId, workspaceId } = message.body as PdfJobData;
-
-  console.log(`📄 Processing file: ${fileId}`);
+  console.log(`📄 Processing file: ${fileId} (attempt ${job.attemptsMade + 1})`);
 
   try {
     await updateStatus(fileId, 'parsing');
@@ -36,41 +29,32 @@ const processPdfJob = async (message: ServiceBusReceivedMessage) => {
   }
 };
 
-let isRunning = false;
+let worker: Worker<PdfJobData> | null = null;
 
 export const startPdfWorker = () => {
-  if (isRunning) {
+  if (worker) {
     return;
   }
 
-  receiver.subscribe(
-    {
-      processMessage: processPdfJob,
-      processError: async (args: ProcessErrorArgs) => {
-        console.error('❌ Service Bus worker error:', args.error);
-      },
-    },
-    {
-      maxConcurrentCalls: 2,
-      autoCompleteMessages: true,
-    }
-  );
+  worker = new Worker<PdfJobData>(PDF_QUEUE_NAME, processPdfJob, {
+    connection: redisConnection,
+    concurrency: 2,
+    lockDuration: 15 * 60 * 1000,
+  });
 
-  isRunning = true;
-  console.log(`✅ PDF worker listening on queue "${SERVICE_BUS_QUEUE_NAME}"`);
+  worker.on('error', (error) => {
+    console.error('❌ PDF worker error:', error);
+  });
+
+  console.log(`✅ PDF worker listening on queue "${PDF_QUEUE_NAME}"`);
 };
 
 export const stopPdfWorker = async () => {
-  if (!isRunning) {
+  if (!worker) {
     return;
   }
 
   console.log('Shutting down PDF worker...');
-  await receiver.close();
-  isRunning = false;
+  await worker.close();
+  worker = null;
 };
-
-// Keep the standalone worker command working for local use.
-if (process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1])) {
-  startPdfWorker();
-}
