@@ -28,6 +28,7 @@ export async function getCandidateDetail({ userId, workspaceId, candidateId }: G
 		where: {
 			id: candidateId,
 			workspaceId,
+			isDeleted: false,
 		},
 		select: {
 			id: true,
@@ -215,6 +216,7 @@ export async function getCandidateTranscriptAnalysis({
 		where: {
 			id: candidateId,
 			workspaceId,
+			isDeleted: false,
 		},
 		select: {
 			id: true,
@@ -293,7 +295,10 @@ export async function getCandidates({ userId, workspaceId }: GetCandidatesInput)
 		throw new Error('User does not have access to this workspace');
 	}
 
-	const whereClause: { workspaceId: number; assignedReviewerId?: number } = { workspaceId };
+	const whereClause: { workspaceId: number; isDeleted: boolean; assignedReviewerId?: number } = {
+		workspaceId,
+		isDeleted: false,
+	};
 	if (membership.role === 'reviewer') {
 		whereClause.assignedReviewerId = userId;
 	}
@@ -354,7 +359,7 @@ export async function assignCandidateReviewer({
 	}
 
 	const candidate = await prisma.candidate.findFirst({
-		where: { id: candidateId, workspaceId },
+		where: { id: candidateId, workspaceId, isDeleted: false },
 		select: { id: true },
 	});
 
@@ -394,3 +399,39 @@ export async function assignCandidateReviewer({
 	return updatedCandidate;
 }
 
+
+export type SoftDeleteCandidateInput = {
+	userId: number;
+	workspaceId: number;
+	candidateId: number;
+};
+
+/**
+ * Soft delete: the candidate row (and all related data) stays in the database,
+ * it is only flagged as deleted so it no longer shows up anywhere in the app.
+ */
+export async function softDeleteCandidate({ userId, workspaceId, candidateId }: SoftDeleteCandidateInput) {
+	const membership = await prisma.workspaceMember.findFirst({
+		where: { userId, workspaceId },
+		select: { role: true },
+	});
+
+	if (!membership || !['super_admin', 'admin'].includes(membership.role)) {
+		throw new Error('Only super_admin and admin users can delete candidates');
+	}
+
+	const result = await prisma.candidate.updateMany({
+		where: { id: candidateId, workspaceId, isDeleted: false },
+		data: {
+			isDeleted: true,
+			deletedAt: new Date(),
+			deletedById: userId,
+		},
+	});
+
+	if (result.count === 0) {
+		throw new Error('Candidate not found in this workspace');
+	}
+
+	return { id: candidateId, deleted: true };
+}

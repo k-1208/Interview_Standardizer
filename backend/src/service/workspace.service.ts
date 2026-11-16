@@ -192,7 +192,7 @@ export async function getWorkspaceMember({
 	}
 
 	const assignedCandidateCount = await prisma.candidate.count({
-		where: { workspaceId, assignedReviewerId: targetUserId },
+		where: { workspaceId, assignedReviewerId: targetUserId, isDeleted: false },
 	});
 
 	return toMemberPayload({

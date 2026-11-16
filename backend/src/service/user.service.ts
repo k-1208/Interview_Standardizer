@@ -101,12 +101,12 @@ export async function getUser(userId: number, workspaceId: number) {
 	// Reviewers see only their assigned candidates; admins/super_admins see all
 	const isReviewer = membership.role === 'reviewer';
 	const candidateBaseWhere = isReviewer
-		? { workspaceId: activeWorkspace.id, assignedReviewerId: userId }
-		: { workspaceId: activeWorkspace.id };
+		? { workspaceId: activeWorkspace.id, isDeleted: false, assignedReviewerId: userId }
+		: { workspaceId: activeWorkspace.id, isDeleted: false };
 
 	const interviewSessionBaseWhere = isReviewer
-		? { candidate: { workspaceId: activeWorkspace.id, assignedReviewerId: userId } }
-		: { candidate: { workspaceId: activeWorkspace.id } };
+		? { candidate: { workspaceId: activeWorkspace.id, isDeleted: false, assignedReviewerId: userId } }
+		: { candidate: { workspaceId: activeWorkspace.id, isDeleted: false } };
 
 	const [
 		totalCandidates,

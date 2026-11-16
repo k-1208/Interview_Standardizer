@@ -16,8 +16,9 @@ import {
   ChevronDown,
   ChevronUp,
   ClipboardList,
+  Trash2,
 } from "lucide-react";
-import { getCandidateById, type CandidateDetailResponse } from "@/api/candidate";
+import { deleteCandidate, getCandidateById, type CandidateDetailResponse } from "@/api/candidate";
 import { sendInterviewBot } from "@/api/ai";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { DataPanel } from "@/components/ui/data-panel";
@@ -73,7 +74,11 @@ function BulletList({ items, empty }: { items: string[]; empty: string }) {
 export default function CandidateProfilePage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const { selectedWorkspaceId } = useWorkspace();
+  const { selectedWorkspaceId, meData } = useWorkspace();
+  const currentRole = meData?.workspaces?.find(
+    (membership) => Number(membership.workspace.id) === selectedWorkspaceId
+  )?.role;
+  const canDelete = currentRole === "super_admin" || currentRole === "admin";
   const [candidateData, setCandidateData] = useState<CandidateDetailResponse["candidate"] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -85,6 +90,24 @@ export default function CandidateProfilePage() {
   const [botError, setBotError] = useState("");
   const [botSuccess, setBotSuccess] = useState("");
   const [isSendingBot, setIsSendingBot] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleDelete = async () => {
+    if (!selectedWorkspaceId) return;
+    try {
+      setDeleteError("");
+      setIsDeleting(true);
+      await deleteCandidate(Number(id), selectedWorkspaceId);
+      setShowDeleteModal(false);
+      router.push("/candidates");
+    } catch (err) {
+      setDeleteError(err instanceof Error ? err.message : "Failed to delete candidate");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   useEffect(() => {
     if (!selectedWorkspaceId) return;
@@ -209,6 +232,18 @@ export default function CandidateProfilePage() {
             <Button variant="ghost" onClick={() => router.push("/export")} className="gap-1.5">
               <FileDown className="w-4 h-4" /> Export
             </Button>
+            {canDelete ? (
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  setDeleteError("");
+                  setShowDeleteModal(true);
+                }}
+                className="gap-1.5 text-red-600 hover:text-red-700 hover:bg-red-500/10 dark:text-red-400 sm:ml-auto"
+              >
+                <Trash2 className="w-4 h-4" /> Delete
+              </Button>
+            ) : null}
           </div>
         </div>
       </DataPanel>
@@ -419,6 +454,30 @@ export default function CandidateProfilePage() {
           </div>
         )}
       </ProfileSection>
+
+      {showDeleteModal ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-md rounded-2xl bg-card border border-border p-6 shadow-lg">
+            <h3 className="text-base font-semibold text-foreground">Delete candidate?</h3>
+            <p className="mt-2 text-sm text-muted-foreground">
+              {candidate.name} will be removed from the candidate list, dashboard and reviewer queues.
+            </p>
+            {deleteError ? (
+              <div className="mt-4 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-600 dark:text-red-400">
+                {deleteError}
+              </div>
+            ) : null}
+            <div className="mt-6 flex items-center justify-end gap-2">
+              <Button type="button" variant="ghost" disabled={isDeleting} onClick={() => setShowDeleteModal(false)}>
+                Cancel
+              </Button>
+              <Button type="button" variant="destructive" disabled={isDeleting} onClick={handleDelete}>
+                {isDeleting ? "Deleting..." : "Delete"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       {showBotModal ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">

@@ -6,6 +6,7 @@ import {
   getCandidateTranscript,
   listCandidates,
   assignReviewer,
+  deleteCandidate,
 } from '../controllers/candidate.controller.js';
 
 const router = Router();
@@ -14,5 +15,6 @@ router.get('/', requireAuth, requireWorkspaceAccess, listCandidates);
 router.get('/:id/transcript-analysis', requireAuth, requireWorkspaceAccess, getCandidateTranscript);
 router.get('/:id', requireAuth, requireWorkspaceAccess, getCandidateById);
 router.post('/:id/assign', requireAuth, requireWorkspaceAccess, requireWorkspaceRole(['super_admin', 'admin']), assignReviewer);
+router.delete('/:id', requireAuth, requireWorkspaceAccess, requireWorkspaceRole(['super_admin', 'admin']), deleteCandidate);
 
 export default router;

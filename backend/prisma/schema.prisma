@@ -150,6 +150,10 @@ model Candidate {
   updatedAt        DateTime          @updatedAt
   workspaceId      Int
   assignedReviewerId Int?
+  // Soft delete: hidden from the app but kept in the database.
+  isDeleted          Boolean           @default(false)
+  deletedAt          DateTime?
+  deletedById        Int?
 
   workspace          Workspace           @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   assignedReviewer   User?               @relation("AssignedCandidates", fields: [assignedReviewerId], references: [id], onDelete: SetNull)
@@ -162,6 +166,7 @@ model Candidate {
   transcriptAnalyses TranscriptAnalysis[]
   resumeFiles        ResumeFile[]
 
+  @@index([workspaceId, isDeleted])
   @@map("candidates")
 }
 

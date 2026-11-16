@@ -258,3 +258,27 @@ export const assignReviewer = async (candidateId: number, workspaceId: number, r
 
 	return raw.data;
 };
+// Soft delete: the backend only flags the candidate as deleted; data is retained.
+export const deleteCandidate = async (candidateId: number, workspaceId: number) => {
+	const token = getStoredToken();
+	const response = await fetch(
+		`${BACKEND_BASE_URL}/api/candidates/${candidateId}?workspaceId=${workspaceId}`,
+		{
+			method: 'DELETE',
+			credentials: 'include',
+			headers: {
+				'Content-Type': 'application/json',
+				'ngrok-skip-browser-warning': 'true',
+				...(token ? { Authorization: `Bearer ${token}` } : {}),
+			},
+		}
+	);
+
+	const raw = (await response.json().catch(() => ({}))) as ApiResponse<{ id: number; deleted: boolean }>;
+
+	if (!response.ok || !raw.success) {
+		throw new Error(raw.message || 'Failed to delete candidate');
+	}
+
+	return raw.data;
+};
