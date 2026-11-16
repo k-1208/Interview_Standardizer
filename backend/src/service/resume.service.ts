@@ -5,6 +5,7 @@ import { RESUME_BUCKET, s3 } from '../config/aws.js';
 import { GetObjectCommand } from '@aws-sdk/client-s3';
 import { PDFParse } from 'pdf-parse';
 import { prisma } from '../utils/prismaClient.js';
+import { serializeAiSummary } from '../utils/aiSummary.js';
 import type { Confidence } from '../../generated/prisma/enums.js';
 import type { Prisma } from '../../generated/prisma/client.js';
 
@@ -184,7 +185,8 @@ export const parseResume = async (pdfText: string): Promise<ParsedResume> => {
       role: 'user',
       parts: [{ text: prompt }],
     }],
-    generationConfig: { temperature: 0.7 },
+    // Extraction, not creative writing: low temperature + JSON mode for consistent, parseable output.
+    generationConfig: { temperature: 0.1, responseMimeType: 'application/json' },
   });
   
   const text = response.response.text();
@@ -192,10 +194,13 @@ export const parseResume = async (pdfText: string): Promise<ParsedResume> => {
   const jsonText = extractJsonFromModelText(text);
   const parsed = JSON.parse(jsonText) as {
     profile?: Record<string, unknown>;
+    aiSummary?: Record<string, unknown>;
     essays?: Array<{ title?: unknown; content?: unknown }>;
     parsedFields?: Array<{ field?: unknown; value?: unknown; confidence?: unknown; source?: unknown }>;
   };
   const profile = parsed.profile || {};
+  // Prompt asks for profile.aiSummary; also accept it at the top level in case the model moves it.
+  const aiSummaryRaw = (profile.aiSummary ?? parsed.aiSummary) as Record<string, unknown> | undefined;
   const safeString = (value: unknown) => (typeof value === 'string' ? value.trim() : '');
   const safeArray = (value: unknown) => jsonToStringArray(value);
   const safeNestedArray = (value: unknown) => (Array.isArray(value) ? value : []);
@@ -268,11 +273,11 @@ export const parseResume = async (pdfText: string): Promise<ParsedResume> => {
       gpa: safeString(profile.gpa),
       degree: safeString(profile.degree),
       summary: safeString(profile.summary),
-      aiSummary: profile.aiSummary
+      aiSummary: aiSummaryRaw
         ? {
-            summary: safeString((profile as any).aiSummary?.summary),
-            keyInsights: safeArray((profile as any).aiSummary?.keyInsights),
-            growthAreas: safeArray((profile as any).aiSummary?.growthAreas),
+            summary: safeString(aiSummaryRaw.summary),
+            keyInsights: safeArray(aiSummaryRaw.keyInsights),
+            growthAreas: safeArray(aiSummaryRaw.growthAreas),
           }
         : undefined,
       activities: safeArray(profile.activities),
@@ -341,7 +346,12 @@ export const parseResumeFile = async (fileId: number) => {
   }
 
   const rawText = await extractText(RESUME_BUCKET, resumeFile.resumeKey);
+  const startedAt = Date.now();
   const parsed = await parseResume(rawText);
+  console.log(`[parseResumeFile] parse finished in ${Date.now() - startedAt}ms`, {
+    fileId,
+    hasSummary: Boolean(parsed.profile.aiSummary?.summary),
+  });
 
   return {
     fileId: resumeFile.id,
@@ -404,7 +414,7 @@ export const saveParsedResume = async (
         gpa: parsed.profile.gpa || '',
         degree: parsed.profile.degree || '',
         summary: parsed.profile.summary || null,
-        aiSummary: parsed.profile.aiSummary?.summary || null,
+        aiSummary: serializeAiSummary(parsed.profile.aiSummary),
         activities: parsed.profile.activities,
         achievements: parsed.profile.achievements,
         strengths: parsed.profile.strengths,

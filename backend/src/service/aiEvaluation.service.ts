@@ -362,6 +362,12 @@ ${JSON.stringify(generatedResponse, null, 2)}
   return normalizeEvaluation(parsed);
 };
 
+/** Cheap rule-based evaluation only (no LLM call) — safe to run in the request path. */
+export const quickEvaluateGeneratedResponse = ({
+  candidateProfile,
+  generatedResponse,
+}: EvaluationInput): EndpointEvaluation => deterministicEvaluation(candidateProfile, generatedResponse);
+
 export const evaluateGeneratedEndpointResponse = async ({
   candidateProfile,
   generatedResponse,

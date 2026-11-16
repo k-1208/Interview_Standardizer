@@ -1,7 +1,8 @@
 import { prisma } from '../utils/prismaClient.js';
+import { normalizeAiSummary } from '../utils/aiSummary.js';
 import { GEMINI_MODEL, geminiClient } from '../config/gemini.js';
 import { buildStructuredInterviewPrompt, type InterviewDifficulty } from '../utils/prompt.js';
-import { evaluateGeneratedEndpointResponse } from './aiEvaluation.service.js';
+import { evaluateGeneratedEndpointResponse, quickEvaluateGeneratedResponse } from './aiEvaluation.service.js';
 import { extractJsonFromModelText, generateToken, jsonToStringArray } from '../utils/helper.js';
 
 interface GenerateInterviewQuestionsInput {
@@ -234,7 +235,7 @@ export const generateInterviewQuestions = async (input: GenerateInterviewQuestio
     ];
 
     candidateSkills = Array.from(new Set(skillList.map((item) => item.trim()).filter(Boolean)));
-    candidateProfile = candidate;
+    candidateProfile = { ...candidate, aiSummary: normalizeAiSummary(candidate.aiSummary) };
 
     const storedQuestions = await prisma.interviewQuestion.findMany({
       where: { candidateId: Number(input.candidateId) },
@@ -315,10 +316,27 @@ export const generateInterviewQuestions = async (input: GenerateInterviewQuestio
     }
   }
 
-  const evaluation = await evaluateGeneratedEndpointResponse({
+  // Only the cheap rule-based score is computed before responding. The LLM-graded
+  // evaluation used to block this response (a second full model call); it now runs
+  // in the background for freshly generated questions and is only logged.
+  const evaluationInput = {
     candidateProfile: parsedResumeData,
     generatedResponse: { questions },
-  });
+  };
+  const evaluation = quickEvaluateGeneratedResponse(evaluationInput);
+
+  if (!existingQuestions) {
+    void evaluateGeneratedEndpointResponse(evaluationInput)
+      .then((modelEvaluation) => {
+        console.log('[generateQuestions] background evaluation', {
+          candidateId: input.candidateId || null,
+          evaluation: modelEvaluation,
+        });
+      })
+      .catch((error: unknown) => {
+        console.error('[generateQuestions] background evaluation failed:', error);
+      });
+  }
 
   return {
     candidateId: input.candidateId || null,

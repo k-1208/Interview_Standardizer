@@ -78,7 +78,7 @@ export interface CandidateDetailResponse {
 			summary: string | null;
 			keyInsights?: string[];
 			growthAreas?: string[];
-		};
+		} | null;
 		activities: string[];
 		achievements: string[];
 		strengths: string[];

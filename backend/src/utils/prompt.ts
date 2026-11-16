@@ -250,6 +250,11 @@ JEE TABLE — columns in order:
     "strengths": [""],
     "growthAreas": [""],
     "skills": [""],
+    "aiSummary": {
+      "summary": "",
+      "keyInsights": [""],
+      "growthAreas": [""]
+    },
     "academicRecords": [
       {
         "standard": "",
@@ -284,11 +289,6 @@ JEE TABLE — columns in order:
         "result": ""
       }
     ]
-  },
-  "aiSummary": {
-    "summary": "",
-    "keyInsights": [""],
-    "growthAreas": [""]
   },
   "essays": [
     { "title": "", "content": "" }
@@ -351,12 +351,12 @@ PASS 4 — REMAINING FIELDS:
   - achievements: from Co-Curricular and Leadership sections
   - essays: question text → title, full answer text → content
 
-  PASS 5 — AI SUMMARY:
-    After extracting the structured profile, produce a concise AI-generated summary of the candidate profile. This must be an objective, high-level paragraph (2-4 sentences) that highlights the candidate's strengths, key insights from their academic and activity records, and 2-4 actionable growth areas the candidate can work on. Return this as 'aiSummary' with fields:
-      - summary: short paragraph (2-4 sentences)
-      - keyInsights: array of short bullets (each 6-15 words) capturing most important signals
-      - growthAreas: array of 2-4 concise suggestions candidate can work on
-    The 'aiSummary' should be specific to the extracted profile (do NOT hallucinate facts not present in extracted fields).
+PASS 5 — AI SUMMARY (REQUIRED — goes inside "profile.aiSummary"):
+  Using only the facts extracted above, write:
+  - summary: 2-4 sentence objective paragraph on academic standing, notable activities/achievements and overall profile
+  - keyInsights: 3-5 bullets, each 6-15 words, with the strongest concrete signals
+  - growthAreas: 2-4 concise, actionable areas the candidate could develop
+  Do not invent facts. If the source is sparse, summarise what is available.
 
 ===== STRICT OUTPUT RULES =====
 - Return ONLY the raw JSON object. No markdown. No code fences. No commentary.
@@ -365,5 +365,6 @@ PASS 4 — REMAINING FIELDS:
 - testDate and rollNumber MUST NOT contain percentile values.
 - NEVER return empty [] for academicRecords or competitiveExams if data exists in the source.
 - Use "" only for fields genuinely absent from the source text.
+- profile.aiSummary.summary MUST NOT be empty.
 `;
 };

@@ -1,5 +1,6 @@
 import { prisma } from '../utils/prismaClient.js';
 import { notifyCandidateAssigned } from './emailNotification.service.js';
+import { normalizeAiSummary } from '../utils/aiSummary.js';
 
 export type GetCandidateDetailInput = {
 	userId: number;
@@ -178,7 +179,10 @@ export async function getCandidateDetail({ userId, workspaceId, candidateId }: G
 
 	return {
 		workspaceId,
-		candidate,
+		candidate: {
+			...candidate,
+			aiSummary: normalizeAiSummary(candidate.aiSummary),
+		},
 	};
 }
 
