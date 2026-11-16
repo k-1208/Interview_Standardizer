@@ -1,6 +1,6 @@
 import { prisma } from '../utils/prismaClient.js';
 import { normalizeAiSummary } from '../utils/aiSummary.js';
-import { GEMINI_MODEL, geminiClient } from '../config/gemini.js';
+import { GEMINI_MODEL, GEMINI_TIMEOUTS, getGeminiModel } from '../config/gemini.js';
 import { buildStructuredInterviewPrompt, type InterviewDifficulty } from '../utils/prompt.js';
 import { evaluateGeneratedEndpointResponse, quickEvaluateGeneratedResponse } from './aiEvaluation.service.js';
 import { extractJsonFromModelText, generateToken, jsonToStringArray } from '../utils/helper.js';
@@ -116,7 +116,7 @@ const generateQuestionsWithGemini = async (
   interviewDurationMinutes: number,
   difficulty: InterviewDifficulty
 ) => {
-  const model = geminiClient.getGenerativeModel({ model: GEMINI_MODEL });
+  const model = getGeminiModel(GEMINI_MODEL, GEMINI_TIMEOUTS.questionGeneration);
 
   const prompt = buildStructuredInterviewPrompt({
     parsedResumeData,

@@ -1,5 +1,5 @@
 import { buildRecallBotPayload, RECALL_API_BASE_URL, RECALL_API_KEY } from '../config/recall.js';
-import { GEMINI_MODEL, geminiClient } from '../config/gemini.js';
+import { GEMINI_MODEL, GEMINI_TIMEOUTS, getGeminiModel } from '../config/gemini.js';
 import { buildTranscriptAnalysisPrompt } from '../utils/prompt.js';
 import { extractJsonFromModelText } from '../utils/helper.js';
 import { prisma } from '../utils/prismaClient.js';
@@ -193,7 +193,7 @@ const extractTranscriptText = (payload: unknown): string => {
 };
 
 const analyzeTranscriptWithGemini = async (transcript: string): Promise<TranscriptAnalysisResult> => {
-	const model = geminiClient.getGenerativeModel({ model: GEMINI_MODEL });
+	const model = getGeminiModel(GEMINI_MODEL, GEMINI_TIMEOUTS.transcriptAnalysis);
 	const prompt = buildTranscriptAnalysisPrompt({ transcript });
 	const result = await model.generateContent(prompt);
 	const text = result.response.text();

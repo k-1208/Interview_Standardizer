@@ -1,4 +1,4 @@
-import { GEMINI_MODEL, geminiClient } from '../config/gemini.js';
+import { GEMINI_MODEL, GEMINI_TIMEOUTS, getGeminiModel } from '../config/gemini.js';
 import { buildResumeParsingPrompt } from '../utils/prompt.js';
 import { extractJsonFromModelText, jsonToStringArray } from '../utils/helper.js';
 import { RESUME_BUCKET, s3 } from '../config/aws.js';
@@ -179,7 +179,7 @@ const extractText = async (bucket: string, key: string) => {
 export const parseResume = async (pdfText: string): Promise<ParsedResume> => {
   const prompt = buildResumeParsingPrompt(pdfText);
 
-  const model = geminiClient.getGenerativeModel({ model: GEMINI_MODEL });
+  const model = getGeminiModel(GEMINI_MODEL, GEMINI_TIMEOUTS.resumeParse);
   const response = await model.generateContent({
     contents: [{
       role: 'user',

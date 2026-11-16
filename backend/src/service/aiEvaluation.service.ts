@@ -1,4 +1,4 @@
-import { GEMINI_EVALUATION_MODEL, geminiClient } from '../config/gemini.js';
+import { GEMINI_EVALUATION_MODEL, GEMINI_TIMEOUTS, getGeminiModel } from '../config/gemini.js';
 
 interface EvaluationInput {
   candidateProfile: unknown;
@@ -319,7 +319,7 @@ const evaluateWithModel = async (
   candidateProfile: unknown,
   generatedResponse: unknown
 ): Promise<EndpointEvaluation> => {
-  const model = geminiClient.getGenerativeModel({ model: GEMINI_EVALUATION_MODEL });
+  const model = getGeminiModel(GEMINI_EVALUATION_MODEL, GEMINI_TIMEOUTS.evaluation);
 
   const prompt = `You are a strict evaluator for AI endpoint quality.
 

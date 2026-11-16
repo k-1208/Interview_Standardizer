@@ -1,6 +1,7 @@
 import type { Request, Response } from 'express';
 import { generateInterviewQuestions } from '../service/ai.service.js';
 import { createMeetingBot } from '../service/zoomBot.service.js';
+import { isGeminiTimeout } from '../config/gemini.js';
 
 export const generateQuestions = async (req: Request, res: Response): Promise<void> => {
   const { candidateId, role, context, count, interviewDurationMinutes, difficulty } = req.body || {};
@@ -38,6 +39,13 @@ export const generateQuestions = async (req: Request, res: Response): Promise<vo
 
     res.status(200).json({ success: true, data });
   } catch (err: any) {
+    if (isGeminiTimeout(err)) {
+      res.status(504).json({
+        success: false,
+        message: 'Question generation took too long. Please try again.',
+      });
+      return;
+    }
     const isNotFound = err?.message === 'Candidate not found';
     res.status(isNotFound ? 404 : 500).json({
       success: false,
