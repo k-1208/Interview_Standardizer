@@ -4,4 +4,3 @@ generated
 .env
 .env.*
 *.log
-prisma/migrations
