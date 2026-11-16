@@ -1,4 +1,5 @@
 import { prisma } from '../utils/prismaClient.js';
+import { HttpError } from '../utils/httpError.js';
 
 type WorkspaceRole = 'super_admin' | 'admin' | 'reviewer';
 
@@ -58,13 +59,13 @@ export async function getUser(userId: number, workspaceId: number) {
 	});
 
 	if (!user) {
-		throw new Error('User not found');
+		throw new HttpError(404, 'User not found');
 	}
 
 	const matched = user.workspaces.find((entry) => entry.workspace.id === workspaceId);
 
 	if (!matched) {
-		throw new Error('User does not have access to this workspace');
+		throw new HttpError(403, 'User does not have access to this workspace');
 	}
 
 	const membership = {

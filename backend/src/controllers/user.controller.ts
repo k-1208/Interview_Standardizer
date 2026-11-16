@@ -1,3 +1,4 @@
+import { sendError } from '../utils/httpError.js';
 import type { Request, Response } from "express";
 import { getUser } from "../service/user.service.js";
 import { inviteWorkspaceMember, validateInvitationToken, acceptInvitation } from "../service/invite.service.js";
@@ -34,15 +35,8 @@ export const getProfile = async (req: Request, res: Response): Promise<void> => 
 
     const data = await getUser(req.user.userId, workspaceId);
     res.status(200).json({ success: true, data });
-  } catch (error: any) {
-    const message = error?.message || "Failed to load user profile";
-    const statusCode =
-      message === "User not found"
-        ? 404
-        : message === "User does not have access to this workspace"
-          ? 403
-          : 500;
-    res.status(statusCode).json({ success: false, message });
+  } catch (error) {
+    sendError(res, error, 'user/getProfile', 'Failed to load user profile');
   }
 };
 
@@ -68,9 +62,8 @@ export const inviteMember = async (req: Request, res: Response): Promise<void> =
     });
 
     res.status(201).json({ success: true, data: invitation });
-  } catch (error: any) {
-    const message = error?.message || "Failed to send invitation";
-    res.status(500).json({ success: false, message });
+  } catch (error) {
+    sendError(res, error, 'user/inviteMember', 'Failed to send invitation');
   }
 };
 
@@ -86,9 +79,8 @@ export const validateInvite = async (req: Request, res: Response): Promise<void>
   try {
     const data = await validateInvitationToken(tokenValue);
     res.status(200).json({ success: true, data });
-  } catch (error: any) {
-    const message = error?.message || "Invalid invitation";
-    res.status(400).json({ success: false, message });
+  } catch (error) {
+    sendError(res, error, 'user/validateInvite', 'Invalid invitation');
   }
 };
 
@@ -108,8 +100,7 @@ export const acceptInvite = async (req: Request, res: Response): Promise<void> =
   try {
     const data = await acceptInvitation(token, req.user.userId);
     res.status(200).json({ success: true, data });
-  } catch (error: any) {
-    const message = error?.message || "Failed to accept invitation";
-    res.status(400).json({ success: false, message });
+  } catch (error) {
+    sendError(res, error, 'user/acceptInvite', 'Failed to accept invitation');
   }
 };

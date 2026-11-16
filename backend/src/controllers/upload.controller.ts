@@ -1,3 +1,4 @@
+import { sendError } from '../utils/httpError.js';
 import type { Request, Response } from 'express';
 import { processUploadedPdf } from '../service/upload.service.js';
 import { requireWorkspaceMembership } from '../service/workspace.service.js';
@@ -24,7 +25,7 @@ export const uploadPdf = async (req: Request, res: Response): Promise<void> => {
     await requireWorkspaceMembership(req.user.userId, workspaceId);
     const result = await processUploadedPdf([req.file], workspaceId);
     res.status(201).json({ success: true, data: result });
-  } catch (err: any) {
-    res.status(400).json({ success: false, message: err?.message || 'Failed to process uploaded file' });
+  } catch (err) {
+    sendError(res, err, 'upload/uploadPdf', 'Failed to process uploaded file');
   }
 };

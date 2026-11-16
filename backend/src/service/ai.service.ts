@@ -4,6 +4,7 @@ import { GEMINI_MODEL, GEMINI_TIMEOUTS, getGeminiModel } from '../config/gemini.
 import { buildStructuredInterviewPrompt, type InterviewDifficulty } from '../utils/prompt.js';
 import { evaluateGeneratedEndpointResponse, quickEvaluateGeneratedResponse } from './aiEvaluation.service.js';
 import { extractJsonFromModelText, generateToken, jsonToStringArray } from '../utils/helper.js';
+import { HttpError } from '../utils/httpError.js';
 
 interface GenerateInterviewQuestionsInput {
   candidateId?: number| null;
@@ -74,7 +75,8 @@ const clampInterviewDuration = (minutes?: number, fallbackCount?: number) => {
 
 const validateQuestions = (questions: unknown): GeneratedQuestion[] => {
   if (!Array.isArray(questions)) {
-    throw new Error('Gemini response did not include a valid questions array');
+    console.error('[generateQuestions] Gemini response did not include a valid questions array');
+    throw new HttpError(502, 'The AI returned an unusable response. Please try again.');
   }
 
   return questions.map((item) => {
@@ -224,7 +226,7 @@ export const generateInterviewQuestions = async (input: GenerateInterviewQuestio
     });
 
     if (!candidate) {
-      throw new Error('Candidate not found');
+      throw new HttpError(404, 'Candidate not found');
     }
 
     candidateName = candidate.name;

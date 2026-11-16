@@ -9,6 +9,9 @@ import userRoutes from "./routes/user.routes.js";
 import candidateRoutes from "./routes/candidate.routes.js";
 import webhookRoutes from "./routes/webhook.routes.js";
 import workspaceRoutes from "./routes/workspace.routes.js";
+import type { NextFunction, Request, Response } from "express";
+import { HttpError, sendError } from "./utils/httpError.js";
+import { checkReadiness } from "./utils/readiness.js";
 
 dotenv.config();
 
@@ -63,6 +66,12 @@ app.get("/health", (req, res) => {
   });
 });
 
+// Readiness: 200 only when Postgres and Redis are reachable (Docker healthcheck).
+app.get("/ready", async (req, res) => {
+  const { ready, checks } = await checkReadiness();
+  res.status(ready ? 200 : 503).json({ status: ready ? "OK" : "UNAVAILABLE", checks });
+});
+
 // ─── Routes ───────────────────────────────────────────────────────────────────
 app.use("/api/auth", authRoutes);
 app.use("/api/upload", uploadRoutes);
@@ -71,5 +80,30 @@ app.use("/api/user", userRoutes);
 app.use("/api/candidates", candidateRoutes);
 app.use("/api/webhooks", webhookRoutes);
 app.use("/api/workspaces", workspaceRoutes);
+
+// JSON 404 for unknown routes (instead of Express's HTML page).
+app.use((req: Request, res: Response) => {
+  res.status(404).json({ success: false, message: "Route not found" });
+});
+
+// Last-resort error handler: malformed JSON bodies, CORS rejections and anything
+// thrown outside a controller's try/catch. Never leaks stack traces or internals.
+app.use((err: unknown, req: Request, res: Response, _next: NextFunction) => {
+  if (res.headersSent) return;
+  const status = (err as { status?: number; type?: string })?.status;
+  if ((err as { type?: string })?.type === "entity.parse.failed") {
+    sendError(res, new HttpError(400, "Malformed JSON body"), "app", "");
+    return;
+  }
+  if ((err as Error)?.message === "Not allowed by CORS") {
+    sendError(res, new HttpError(403, "Origin not allowed"), "app", "");
+    return;
+  }
+  if (typeof status === "number" && status >= 400 && status < 500) {
+    sendError(res, new HttpError(status, "Bad request"), "app", "");
+    return;
+  }
+  sendError(res, err, `app ${req.method} ${req.path}`, "Internal server error");
+});
 
 export default app;

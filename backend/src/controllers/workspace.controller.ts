@@ -1,8 +1,8 @@
+import { sendError } from '../utils/httpError.js';
 import type { Request, Response } from 'express';
 import {
 	createWorkspaceForUser,
 	getWorkspaceMember,
-	memberErrorStatus,
 	removeWorkspaceMember,
 	updateWorkspaceMemberRole,
 } from '../service/workspace.service.js';
@@ -28,8 +28,8 @@ export async function createWorkspace(req: Request, res: Response): Promise<void
 	try {
 		const workspace = await createWorkspaceForUser(req.user.userId, name);
 		res.status(201).json({ success: true, data: workspace });
-	} catch (err: any) {
-		res.status(400).json({ success: false, message: err?.message || 'Failed to create workspace' });
+	} catch (err) {
+		sendError(res, err, 'workspace/createWorkspace', 'Failed to create workspace');
 	}
 }
 
@@ -54,9 +54,8 @@ export async function getMember(req: Request, res: Response): Promise<void> {
 			targetUserId,
 		});
 		res.status(200).json({ success: true, data: member });
-	} catch (err: any) {
-		const message = err?.message || 'Failed to load member';
-		res.status(memberErrorStatus(message)).json({ success: false, message });
+	} catch (err) {
+		sendError(res, err, 'workspace/getMember', 'Failed to load member');
 	}
 }
 
@@ -83,9 +82,8 @@ export async function updateMemberRole(req: Request, res: Response): Promise<voi
 			role,
 		});
 		res.status(200).json({ success: true, data: member });
-	} catch (err: any) {
-		const message = err?.message || 'Failed to update member role';
-		res.status(memberErrorStatus(message)).json({ success: false, message });
+	} catch (err) {
+		sendError(res, err, 'workspace/updateMemberRole', 'Failed to update member role');
 	}
 }
 
@@ -110,8 +108,7 @@ export async function removeMember(req: Request, res: Response): Promise<void> {
 			targetUserId,
 		});
 		res.status(200).json({ success: true, data: result });
-	} catch (err: any) {
-		const message = err?.message || 'Failed to remove member';
-		res.status(memberErrorStatus(message)).json({ success: false, message });
+	} catch (err) {
+		sendError(res, err, 'workspace/removeMember', 'Failed to remove member');
 	}
 }

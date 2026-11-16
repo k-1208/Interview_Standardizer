@@ -1,7 +1,9 @@
 import dotenv from 'dotenv';
 import http from 'http';
+import { installProcessHandlers } from './utils/processHandlers.js';
 
 dotenv.config();
+installProcessHandlers('api');
 
 try {
     console.log('Importing app..');

@@ -2,6 +2,7 @@ import { prisma } from '../utils/prismaClient.js';
 import { generateToken } from '../utils/helper.js';
 import { sendWorkspaceInvitationEmail } from './email.service.js';
 import { requireWorkspaceInvitePermission } from './workspace.service.js';
+import { HttpError } from '../utils/httpError.js';
 
 type WorkspaceRole = 'super_admin' | 'admin' | 'reviewer';
 
@@ -27,11 +28,11 @@ export const inviteWorkspaceMember = async ({ email, role, workspaceId, invitedB
 	]);
 
 	if (!workspace) {
-		throw new Error('Workspace not found');
+		throw new HttpError(404, 'Workspace not found');
 	}
 
 	if (!inviter) {
-		throw new Error('Inviter not found');
+		throw new HttpError(404, 'Inviter not found');
 	}
 
 	const existing = await prisma.invitation.findUnique({
@@ -88,7 +89,7 @@ export const validateInvitationToken = async (token: string) => {
 	});
 
 	if (!invitation) {
-		throw new Error('Invitation not found');
+		throw new HttpError(404, 'Invitation not found');
 	}
 
 	const now = new Date();
@@ -102,7 +103,7 @@ export const validateInvitationToken = async (token: string) => {
 	}
 
 	if (invitation.status !== 'pending' || isExpired) {
-		throw new Error('Invitation expired or already used');
+		throw new HttpError(409, 'Invitation expired or already used');
 	}
 
 	const existingUser = await prisma.user.findUnique({
@@ -129,7 +130,7 @@ export const acceptInvitation = async (token: string, userId: number) => {
 	});
 
 	if (!invitation) {
-		throw new Error('Invitation not found');
+		throw new HttpError(404, 'Invitation not found');
 	}
 
 	const now = new Date();
@@ -143,7 +144,7 @@ export const acceptInvitation = async (token: string, userId: number) => {
 	}
 
 	if (invitation.status !== 'pending' || isExpired) {
-		throw new Error('Invitation expired or already used');
+		throw new HttpError(409, 'Invitation expired or already used');
 	}
 
 	const user = await prisma.user.findUnique({
@@ -152,11 +153,11 @@ export const acceptInvitation = async (token: string, userId: number) => {
 	});
 
 	if (!user) {
-		throw new Error('User not found');
+		throw new HttpError(404, 'User not found');
 	}
 
 	if (user.email.toLowerCase() !== invitation.email.toLowerCase()) {
-		throw new Error('Invitation email does not match user');
+		throw new HttpError(403, 'Invitation email does not match user');
 	}
 
 	await prisma.workspaceMember.upsert({

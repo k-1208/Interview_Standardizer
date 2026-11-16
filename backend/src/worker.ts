@@ -1,8 +1,10 @@
 import dotenv from 'dotenv';
+import { installProcessHandlers } from './utils/processHandlers.js';
 import { startPdfWorker, stopPdfWorker } from './service/queue/pdf.worker.js';
 import { startEmailWorker, stopEmailWorker } from './service/queue/email.worker.js';
 
 dotenv.config();
+installProcessHandlers('worker');
 
 startPdfWorker();
 startEmailWorker();

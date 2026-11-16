@@ -1,6 +1,7 @@
 import { prisma } from '../utils/prismaClient.js';
 import { notifyCandidateAssigned } from './emailNotification.service.js';
 import { normalizeAiSummary } from '../utils/aiSummary.js';
+import { HttpError } from '../utils/httpError.js';
 
 export type GetCandidateDetailInput = {
 	userId: number;
@@ -22,7 +23,7 @@ export async function getCandidateDetail({ userId, workspaceId, candidateId }: G
 	});
 
 	if (!membership) {
-		throw new Error('User does not have access to this workspace');
+		throw new HttpError(403, 'User does not have access to this workspace');
 	}
 
 	const candidate = await prisma.candidate.findFirst({
@@ -174,7 +175,7 @@ export async function getCandidateDetail({ userId, workspaceId, candidateId }: G
 	});
 
 	if (!candidate) {
-		throw new Error('Candidate not found in this workspace');
+		throw new HttpError(404, 'Candidate not found in this workspace');
 	}
 
 	return {
@@ -213,7 +214,7 @@ export async function getCandidateTranscriptAnalysis({
 	});
 
 	if (!membership) {
-		throw new Error('User does not have access to this workspace');
+		throw new HttpError(403, 'User does not have access to this workspace');
 	}
 
 	const candidate = await prisma.candidate.findFirst({
@@ -228,7 +229,7 @@ export async function getCandidateTranscriptAnalysis({
 	});
 
 	if (!candidate) {
-		throw new Error('Candidate not found in this workspace');
+		throw new HttpError(404, 'Candidate not found in this workspace');
 	}
 
 	const analysis = await prisma.transcriptAnalysis.findFirst({
@@ -296,7 +297,7 @@ export async function getCandidates({ userId, workspaceId }: GetCandidatesInput)
 	});
 
 	if (!membership) {
-		throw new Error('User does not have access to this workspace');
+		throw new HttpError(403, 'User does not have access to this workspace');
 	}
 
 	const whereClause: { workspaceId: number; isDeleted: boolean; assignedReviewerId?: number } = {
@@ -359,7 +360,7 @@ export async function assignCandidateReviewer({
 	});
 
 	if (!membership || !['super_admin', 'admin'].includes(membership.role)) {
-		throw new Error('Only super_admin and admin users can assign candidate reviewers');
+		throw new HttpError(403, 'Only super_admin and admin users can assign candidate reviewers');
 	}
 
 	const candidate = await prisma.candidate.findFirst({
@@ -368,7 +369,7 @@ export async function assignCandidateReviewer({
 	});
 
 	if (!candidate) {
-		throw new Error('Candidate not found in this workspace');
+		throw new HttpError(404, 'Candidate not found in this workspace');
 	}
 
 	const reviewerMembership = await prisma.workspaceMember.findFirst({
@@ -377,7 +378,7 @@ export async function assignCandidateReviewer({
 	});
 
 	if (!reviewerMembership) {
-		throw new Error('Selected reviewer is not a member of this workspace');
+		throw new HttpError(400, 'Selected reviewer is not a member of this workspace');
 	}
 
 	const updatedCandidate = await prisma.candidate.update({
@@ -421,7 +422,7 @@ export async function softDeleteCandidate({ userId, workspaceId, candidateId }: 
 	});
 
 	if (!membership || !['super_admin', 'admin'].includes(membership.role)) {
-		throw new Error('Only super_admin and admin users can delete candidates');
+		throw new HttpError(403, 'Only super_admin and admin users can delete candidates');
 	}
 
 	const result = await prisma.candidate.updateMany({
@@ -434,7 +435,7 @@ export async function softDeleteCandidate({ userId, workspaceId, candidateId }: 
 	});
 
 	if (result.count === 0) {
-		throw new Error('Candidate not found in this workspace');
+		throw new HttpError(404, 'Candidate not found in this workspace');
 	}
 
 	return { id: candidateId, deleted: true };

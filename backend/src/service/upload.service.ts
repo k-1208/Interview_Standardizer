@@ -4,6 +4,7 @@ import { PutObjectCommand } from '@aws-sdk/client-s3';
 import { RESUME_BUCKET, s3 } from '../config/aws.js';
 import { prisma } from '../utils/prismaClient.js';
 import { addPdfJob } from './queue/pdf.queue.js';
+import { HttpError } from '../utils/httpError.js';
 
 const MAX_PDF_SIZE_BYTES = 10 * 1024 * 1024;
 
@@ -25,7 +26,7 @@ export const processUploadedPdf = async (
   }
 
   if (!workspaceId) {
-    throw new Error('workspaceId is required to process uploaded PDFs');
+    throw new HttpError(400, 'workspaceId is required to process uploaded PDFs');
   }
 
   const results: UploadedPdfResult[] = [];
@@ -38,15 +39,15 @@ export const processUploadedPdf = async (
     const isPdfExtension = extension === '.pdf';
 
     if (!isPdfMime && !isPdfExtension) {
-      throw new Error('Only PDF files are allowed');
+      throw new HttpError(400, 'Only PDF files are allowed');
     }
 
     if (file.size > MAX_PDF_SIZE_BYTES) {
-      throw new Error('File size exceeds 10 MB limit');
+      throw new HttpError(400, 'File size exceeds 10 MB limit');
     }
 
     if (!file.buffer || file.buffer.length === 0) {
-      throw new Error('Uploaded file buffer is empty');
+      throw new HttpError(400, 'Uploaded file buffer is empty');
     }
 
     const safeOriginalName = file.originalname.replace(/\s+/g, '-');

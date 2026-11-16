@@ -2,6 +2,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { prisma } from '../utils/prismaClient.js';
 import { createWorkspaceForUserInTransaction } from './workspace.service.js';
+import { HttpError } from '../utils/httpError.js';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'changeme_use_strong_secret_in_env';
 const JWT_EXPIRES_IN = '7d';
@@ -22,7 +23,7 @@ export async function registerUser(
   console.log('[auth/registerUser] Checking existing user', { email });
   const existing = await prisma.user.findUnique({ where: { email } });
   if (existing) {
-    throw new Error('Email already in use');
+    throw new HttpError(409, 'Email already in use');
   }
   const passwordHash = await bcrypt.hash(password, 10);
 
@@ -64,7 +65,7 @@ export async function registerUserFromInvitation(
   });
 
   if (!invitation) {
-    throw new Error('Invitation not found');
+    throw new HttpError(404, 'Invitation not found');
   }
 
   const now = new Date();
@@ -78,16 +79,16 @@ export async function registerUserFromInvitation(
   }
 
   if (invitation.status !== 'pending' || isExpired) {
-    throw new Error('Invitation expired or already used');
+    throw new HttpError(409, 'Invitation expired or already used');
   }
 
   if (normalizedEmail !== invitation.email.toLowerCase()) {
-    throw new Error('Email must match the invitation');
+    throw new HttpError(409, 'Email must match the invitation');
   }
 
   const existing = await prisma.user.findUnique({ where: { email: normalizedEmail } });
   if (existing) {
-    throw new Error('Email already in use — sign in and accept the invitation');
+    throw new HttpError(409, 'Email already in use — sign in and accept the invitation');
   }
 
   const passwordHash = await bcrypt.hash(password, 10);
@@ -134,13 +135,13 @@ export async function loginUser(email: string, password: string) {
   const normalizedEmail = (email || '').toLowerCase().trim();
   const user = await prisma.user.findUnique({ where: { email: normalizedEmail } });
   if (!user) {
-    throw new Error('Invalid credentials');
+    throw new HttpError(401, 'Invalid credentials');
   }
 
   // @ts-ignore
   const valid = await bcrypt.compare(password, user.passwordHash as string);
   if (!valid) {
-    throw new Error('Invalid credentials');
+    throw new HttpError(401, 'Invalid credentials');
   }
 
   const token = jwt.sign(
@@ -178,7 +179,7 @@ export async function getMe(userId: number) {
   });
 
   if (!user) {
-    throw new Error('User not found');
+    throw new HttpError(404, 'User not found');
   }
 
   return user;

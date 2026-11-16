@@ -1,3 +1,4 @@
+import { sendError } from '../utils/httpError.js';
 import type { Request, Response } from 'express';
 import { registerUser, registerUserFromInvitation, loginUser, getMe } from '../service/auth.service.js';
 
@@ -40,21 +41,8 @@ export async function register(req: Request, res: Response): Promise<void> {
       : await registerUser(name, organizationName, email, password);
     res.cookie('token', token, COOKIE_OPTIONS);
     res.status(201).json({ success: true, data: { user, token } });
-  } catch (err: any) {
-    console.error('[auth/register] Registration failed', {
-      message: err?.message,
-      stack: err?.stack,
-      code: err?.code,
-    });
-    const clientErrors = new Set([
-      'Email already in use',
-      'Email already in use — sign in and accept the invitation',
-      'Invitation not found',
-      'Invitation expired or already used',
-      'Email must match the invitation',
-    ]);
-    const isClientError = clientErrors.has(err.message);
-    res.status(isClientError ? 409 : 500).json({ success: false, message: err.message });
+  } catch (err) {
+    sendError(res, err, 'auth/register', 'Registration failed. Please try again.');
   }
 }
 
@@ -71,8 +59,8 @@ export async function login(req: Request, res: Response): Promise<void> {
     const { user, token } = await loginUser(email, password);
     res.cookie('token', token, COOKIE_OPTIONS);
     res.status(200).json({ success: true, data: { user, token } });
-  } catch (err: any) {
-    res.status(401).json({ success: false, message: err.message });
+  } catch (err) {
+    sendError(res, err, 'auth/login', 'Login failed. Please try again.');
   }
 }
 
@@ -85,7 +73,7 @@ export async function me(req: Request, res: Response): Promise<void> {
   try {
     const user = await getMe(req.user!.userId);
     res.status(200).json({ success: true, data: user });
-  } catch (err: any) {
-    res.status(404).json({ success: false, message: err.message });
+  } catch (err) {
+    sendError(res, err, 'auth/me', 'Failed to load user');
   }
 }

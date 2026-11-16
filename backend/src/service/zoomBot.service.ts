@@ -1,4 +1,5 @@
 import { buildRecallBotPayload, RECALL_API_BASE_URL, RECALL_API_KEY } from '../config/recall.js';
+import { HttpError } from '../utils/httpError.js';
 import { GEMINI_MODEL, GEMINI_TIMEOUTS, getGeminiModel } from '../config/gemini.js';
 import { buildTranscriptAnalysisPrompt } from '../utils/prompt.js';
 import { extractJsonFromModelText } from '../utils/helper.js';
@@ -100,8 +101,12 @@ export const createMeetingBot = async (input: CreateMeetingBotInput) => {
 	const raw = (await response.json().catch(() => ({}))) as RecallBotResponse | { detail?: string };
 
 	if (!response.ok) {
-		const message = (raw as { detail?: string })?.detail || 'Failed to create Recall bot';
-		throw new Error(message);
+		// Recall's raw error stays in our logs; the client gets a clear, safe message.
+		console.error('[createMeetingBot] Recall API error', { status: response.status, body: raw });
+		throw new HttpError(
+			502,
+			'Could not send the bot to this meeting. Check the meeting URL and try again.'
+		);
 	}
 
 	if (input.candidateId && (raw as RecallBotResponse).id) {

@@ -1,3 +1,4 @@
+import { sendError } from '../utils/httpError.js';
 import type { Request, Response } from 'express';
 import { generateInterviewQuestions } from '../service/ai.service.js';
 import { createMeetingBot } from '../service/zoomBot.service.js';
@@ -38,7 +39,7 @@ export const generateQuestions = async (req: Request, res: Response): Promise<vo
     const data = await generateInterviewQuestions(payload);
 
     res.status(200).json({ success: true, data });
-  } catch (err: any) {
+  } catch (err) {
     if (isGeminiTimeout(err)) {
       res.status(504).json({
         success: false,
@@ -46,11 +47,8 @@ export const generateQuestions = async (req: Request, res: Response): Promise<vo
       });
       return;
     }
-    const isNotFound = err?.message === 'Candidate not found';
-    res.status(isNotFound ? 404 : 500).json({
-      success: false,
-      message: err?.message || 'Failed to generate interview questions',
-    });
+    
+    sendError(res, err, 'ai/generateQuestions', 'Failed to generate interview questions');
   }
 };
 
@@ -74,10 +72,7 @@ export const sendInterviewBot = async (req: Request, res: Response): Promise<voi
     const data = await createMeetingBot(payload);
 
     res.status(201).json({ success: true, data });
-  } catch (err: any) {
-    res.status(500).json({
-      success: false,
-      message: err?.message || 'Failed to send bot to meeting',
-    });
+  } catch (err) {
+    sendError(res, err, 'ai/sendInterviewBot', 'Failed to send bot to meeting');
   }
 };

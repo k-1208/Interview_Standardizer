@@ -1,3 +1,4 @@
+import { sendError } from '../utils/httpError.js';
 import type { Request, Response } from 'express';
 import {
 	getCandidateDetail,
@@ -34,15 +35,8 @@ export async function getCandidateById(req: Request, res: Response): Promise<voi
 		});
 
 		res.status(200).json({ success: true, data });
-	} catch (error: any) {
-		const message = error?.message || 'Failed to load candidate';
-		const statusCode =
-			message === 'User does not have access to this workspace'
-				? 403
-				: message === 'Candidate not found in this workspace'
-					? 404
-					: 500;
-		res.status(statusCode).json({ success: false, message });
+	} catch (error) {
+		sendError(res, error, 'candidate/getCandidateById', 'Failed to load candidate');
 	}
 }
 
@@ -66,11 +60,8 @@ export async function listCandidates(req: Request, res: Response): Promise<void>
 		});
 
 		res.status(200).json({ success: true, data });
-	} catch (error: any) {
-		const message = error?.message || 'Failed to load candidates';
-		const statusCode =
-			message === 'User does not have access to this workspace' ? 403 : 500;
-		res.status(statusCode).json({ success: false, message });
+	} catch (error) {
+		sendError(res, error, 'candidate/listCandidates', 'Failed to load candidates');
 	}
 }
 
@@ -101,15 +92,8 @@ export async function getCandidateTranscript(req: Request, res: Response): Promi
 		});
 
 		res.status(200).json({ success: true, data });
-	} catch (error: any) {
-		const message = error?.message || 'Failed to load transcript analysis';
-		const statusCode =
-			message === 'User does not have access to this workspace'
-				? 403
-				: message === 'Candidate not found in this workspace'
-					? 404
-					: 500;
-		res.status(statusCode).json({ success: false, message });
+	} catch (error) {
+		sendError(res, error, 'candidate/getCandidateTranscript', 'Failed to load transcript analysis');
 	}
 }
 
@@ -141,10 +125,8 @@ export async function assignReviewer(req: Request, res: Response): Promise<void>
 		});
 
 		res.status(200).json({ success: true, data });
-	} catch (error: any) {
-		const message = error?.message || 'Failed to assign reviewer';
-		const statusCode = message.includes('Only super_admin') ? 403 : 400;
-		res.status(statusCode).json({ success: false, message });
+	} catch (error) {
+		sendError(res, error, 'candidate/assignReviewer', 'Failed to assign reviewer');
 	}
 }
 
@@ -175,13 +157,7 @@ export async function deleteCandidate(req: Request, res: Response): Promise<void
 		});
 
 		res.status(200).json({ success: true, data });
-	} catch (error: any) {
-		const message = error?.message || 'Failed to delete candidate';
-		const statusCode = message.includes('Only super_admin')
-			? 403
-			: message === 'Candidate not found in this workspace'
-				? 404
-				: 500;
-		res.status(statusCode).json({ success: false, message });
+	} catch (error) {
+		sendError(res, error, 'candidate/deleteCandidate', 'Failed to delete candidate');
 	}
 }
