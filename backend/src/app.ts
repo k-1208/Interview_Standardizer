@@ -2,6 +2,7 @@ import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
 import cookieParser from "cookie-parser";
+import helmet from "helmet";
 import authRoutes from "./routes/auth.routes.js";
 import uploadRoutes from "./routes/upload.routes.js";
 import aiRoutes from "./routes/ai.routes.js";
@@ -17,6 +18,19 @@ import { requireCsrfHeader } from "./middleware/csrf.middleware.js";
 dotenv.config();
 
 const app = express();
+app.disable("x-powered-by");
+// Behind a reverse proxy / load balancer (needed for correct protocol & client IP).
+if (process.env.TRUST_PROXY) app.set("trust proxy", process.env.TRUST_PROXY === "true" ? 1 : process.env.TRUST_PROXY);
+
+// Security headers. This is a JSON API: lock everything down, but allow the
+// frontend (another origin) to read responses via CORS.
+app.use(
+  helmet({
+    contentSecurityPolicy: { useDefaults: false, directives: { defaultSrc: ["'none'"], frameAncestors: ["'none'"] } },
+    frameguard: { action: "deny" },
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+  })
+);
 const extraFrontendUrl = process.env.FRONTEND_URL?.replace(/\/$/, "");
 const allowedOrigins = [
   "https://interview-standardizer.vercel.app",
