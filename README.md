@@ -28,6 +28,8 @@ Or just Docker — see [Docker (full stack)](#docker-full-stack).
 
 ## Docker (full stack)
 
+> Deploying to a server (domain, HTTPS, backups, updates)? See **[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)**.
+
 `docker-compose.yml` runs Postgres, Redis, a one-shot migration job, the API, the queue workers and the frontend.
 
 ```bash
