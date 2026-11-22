@@ -297,7 +297,6 @@ export const parseResume = async (pdfText: string): Promise<ParsedResume> => {
 
 function postProcess(parsed: ParsedResume): ParsedResume {
   const records: AcademicRecord[] = parsed.profile.academicRecords ?? [];
-  console.log('records are', records);
 
   const rec10 = records.find((r: AcademicRecord) => r.standard === '10th');
   const rec12 = records.find((r: AcademicRecord) => r.standard === '12th');
@@ -394,12 +393,7 @@ export const saveParsedResume = async (
   const email = parsed.profile.email || `unknown+${fileId}@example.local`;
   const name = parsed.profile.name || `Applicant ${fileId}`;
 
-  console.log('[saveParsedResume] creating candidate', {
-    fileId,
-    workspaceId,
-    name,
-    email,
-  });
+  console.log('[saveParsedResume] creating candidate', { fileId, workspaceId });
 
   return await prisma.$transaction(async (tx) => {
     const candidate = await tx.candidate.create({

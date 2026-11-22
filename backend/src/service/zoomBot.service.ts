@@ -252,7 +252,7 @@ export const retrieveBot = async (payload: RecallWebhookPayload): Promise<Recall
 		where: { botId },
 		select: { id: true, workspaceId: true },
 	});
-	console.log('Associated candidate:', candidate);
+	console.log('Associated candidate:', candidate?.id ?? null);
 
 	if (!candidate) {
 		return { handled: false, message: 'Candidate not found for bot id' };
@@ -302,7 +302,7 @@ export const retrieveBot = async (payload: RecallWebhookPayload): Promise<Recall
 
 	const transcriptPayload = (await transcriptDownloadResponse.json().catch(() => ({}))) as unknown;
 	const transcriptText = extractTranscriptText(transcriptPayload);
-	console.log('Transcript text:', transcriptText);
+	console.log('Transcript received', { candidateId: candidate.id, characters: transcriptText.length });
 
 	if (!transcriptText) {
 		return { handled: false, message: 'Transcript text is empty' };
@@ -310,7 +310,11 @@ export const retrieveBot = async (payload: RecallWebhookPayload): Promise<Recall
 
 	console.log('Invoking Gemini transcript analysis');
 	const analysis = await analyzeTranscriptWithGemini(transcriptText);
-	console.log('Transcript analysis result:', JSON.stringify(analysis, null, 2));
+	console.log('Transcript analysis complete', {
+		candidateId: candidate.id,
+		questionsAsked: analysis.questionsAsked.length,
+		questionAnswerPairs: analysis.questionAnswerPairs.length,
+	});
 
 	const analysisRecord = await prisma.transcriptAnalysis.create({
 		data: {

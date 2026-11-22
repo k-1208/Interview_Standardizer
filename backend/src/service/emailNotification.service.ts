@@ -7,6 +7,7 @@ import {
   generateCandidateAssignedTemplate,
 } from '../utils/email.js';
 import nodemailer from 'nodemailer';
+import { maskEmail } from '../utils/redact.js';
 
 type WorkspaceRole = 'super_admin' | 'admin' | 'reviewer';
 
@@ -59,7 +60,7 @@ async function safeEnqueueOrSendEmail(jobData: {
 }) {
   try {
     await addEmailJob(jobData);
-    console.log(`[NotificationService] Enqueued ${jobData.type} email to ${jobData.to}`);
+    console.log(`[NotificationService] Enqueued ${jobData.type} email to ${maskEmail(jobData.to)}`);
   } catch (queueErr) {
     console.warn('[NotificationService] Email queue offline/failed. Falling back to direct SMTP send:', queueErr);
     try {
@@ -82,7 +83,7 @@ async function safeEnqueueOrSendEmail(jobData: {
         html: jobData.html,
         text: jobData.text,
       });
-      console.log(`[NotificationService] Direct SMTP sent ${jobData.type} email to ${jobData.to}`);
+      console.log(`[NotificationService] Direct SMTP sent ${jobData.type} email to ${maskEmail(jobData.to)}`);
     } catch (smtpErr) {
       console.error('[NotificationService] Direct SMTP fallback failed:', smtpErr);
     }
