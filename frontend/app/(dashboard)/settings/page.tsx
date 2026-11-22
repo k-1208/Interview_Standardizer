@@ -19,6 +19,7 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { DataPanel, DataTable, DataTd, DataTh } from "@/components/ui/data-panel";
 import { InitialsAvatar } from "@/components/ui/initials-avatar";
 import { formatRole, getInitials } from "@/lib/display";
+import { ApiKeysPanel } from "@/components/settings/ApiKeysPanel";
 
 type MemberRole = "all" | "admin" | "reviewer";
 
@@ -391,6 +392,8 @@ export default function SettingsPage() {
           </div>
         </div>
       </DataPanel>
+
+      {canInvite && activeWorkspaceId ? <ApiKeysPanel workspaceId={Number(activeWorkspaceId)} /> : null}
 
       <DataPanel className="overflow-visible">
         <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 p-4 sm:px-5">

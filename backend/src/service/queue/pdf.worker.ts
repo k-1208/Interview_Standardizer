@@ -31,7 +31,7 @@ const processPdfJob = async (job: Job<PdfJobData>) => {
   try {
     await updateStatus(fileId, 'parsing');
 
-    const result = await parseResumeFile(Number(fileId));
+    const result = await parseResumeFile(Number(fileId), workspaceId);
     // Never log resume content (raw text, names, grades, essays) — counts only.
     console.log('📊 Parsed resume', {
       fileId,

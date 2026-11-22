@@ -50,6 +50,11 @@ enum InvitationStatus {
   cancelled
 }
 
+enum ApiKeyProvider {
+  gemini
+  recall
+}
+
 enum ResumeFileStatus {
   uploaded
   parsing
@@ -71,6 +76,7 @@ model Workspace {
   members           WorkspaceMember[]
   invitations       Invitation[]
   candidates        Candidate[]
+  apiKeys           WorkspaceApiKey[]
 
   @@map("workspaces")
 }
@@ -124,6 +130,7 @@ model User {
   invitationsSent   Invitation[]
   interviewSessions InterviewSession[]
   assignedCandidates Candidate[]      @relation("AssignedCandidates")
+  apiKeysUpdated    WorkspaceApiKey[]
 
   @@map("users")
 }
@@ -332,4 +339,23 @@ model InterviewSession {
   generatedBy   User            @relation(fields: [generatedById], references: [id])
 
   @@map("interview_sessions")
+}
+
+// Per-workspace API keys for external services. The secret is stored encrypted
+// (AES-256-GCM, SETTINGS_ENCRYPTION_KEY); only the masked form is ever returned.
+model WorkspaceApiKey {
+  id             Int            @id @default(autoincrement())
+  workspaceId    Int
+  provider       ApiKeyProvider
+  encryptedValue String         @db.Text
+  maskedValue    String         @db.VarChar(40)
+  updatedById    Int?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  workspace      Workspace      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  updatedBy      User?          @relation(fields: [updatedById], references: [id], onDelete: SetNull)
+
+  @@unique([workspaceId, provider])
+  @@map("workspace_api_keys")
 }

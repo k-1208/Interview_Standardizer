@@ -1,7 +1,6 @@
 export const RECALL_API_BASE_URL =
 	process.env.RECALL_API_BASE_URL || "https://us-west-2.recall.ai/api/v1";
 
-export const RECALL_API_KEY = process.env.RECALL_API_KEY || "";
 
 export type RecallBotCreateInput = {
 	meeting_url: string;

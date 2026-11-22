@@ -1,15 +1,22 @@
 import { GoogleGenerativeAI, GoogleGenerativeAIAbortError } from '@google/generative-ai';
+import { resolveApiKey } from '../service/apiKey.service.js';
 
-const geminiApiKey = process.env.GEMINI_API_KEY;
-
-if (!geminiApiKey) {
-  throw new Error('GEMINI_API_KEY is missing. Add it in backend environment variables.');
-}
+// GEMINI_API_KEY is now optional: it is the server-wide default, used when a
+// workspace hasn't set its own key in Settings → API keys.
 
 export const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-3-flash-preview';
 export const GEMINI_EVALUATION_MODEL = process.env.GEMINI_EVALUATION_MODEL || 'gemini-2.0-flash';
 
-export const geminiClient = new GoogleGenerativeAI(geminiApiKey);
+// One client per distinct key (workspaces can bring their own).
+const clients = new Map<string, GoogleGenerativeAI>();
+const clientFor = (apiKey: string) => {
+  let client = clients.get(apiKey);
+  if (!client) {
+    client = new GoogleGenerativeAI(apiKey);
+    clients.set(apiKey, client);
+  }
+  return client;
+};
 
 // Per-call time limits so a hung Gemini request can't block a worker slot or an HTTP request.
 const timeoutFromEnv = (name: string, fallbackMs: number) => {
@@ -24,7 +31,10 @@ export const GEMINI_TIMEOUTS = {
   transcriptAnalysis: timeoutFromEnv('GEMINI_TRANSCRIPT_TIMEOUT_MS', 90_000),
 } as const;
 
-export const getGeminiModel = (model: string, timeoutMs: number) =>
-  geminiClient.getGenerativeModel({ model }, { timeout: timeoutMs });
+/** Gemini model bound to the workspace's API key (or the server default). */
+export const getGeminiModel = async (workspaceId: number, model: string, timeoutMs: number) => {
+  const apiKey = await resolveApiKey(workspaceId, 'gemini');
+  return clientFor(apiKey).getGenerativeModel({ model }, { timeout: timeoutMs });
+};
 
 export const isGeminiTimeout = (error: unknown) => error instanceof GoogleGenerativeAIAbortError;

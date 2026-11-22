@@ -1,4 +1,5 @@
-import { buildRecallBotPayload, RECALL_API_BASE_URL, RECALL_API_KEY } from '../config/recall.js';
+import { buildRecallBotPayload, RECALL_API_BASE_URL } from '../config/recall.js';
+import { resolveApiKey } from './apiKey.service.js';
 import { HttpError } from '../utils/httpError.js';
 import { GEMINI_MODEL, GEMINI_TIMEOUTS, getGeminiModel } from '../config/gemini.js';
 import { buildTranscriptAnalysisPrompt } from '../utils/prompt.js';
@@ -74,9 +75,7 @@ type TranscriptAnalysisResult = {
 };
 
 export const createMeetingBot = async (input: CreateMeetingBotInput) => {
-	if (!RECALL_API_KEY) {
-		throw new Error('Recall API key is not configured');
-	}
+	const recallApiKey = await resolveApiKey(input.workspaceId, 'recall');
 
 	// The bot's transcript is written onto this candidate, so it must belong to the
 	// caller's workspace (and not be deleted) before we create anything.
@@ -107,7 +106,7 @@ export const createMeetingBot = async (input: CreateMeetingBotInput) => {
 		headers: {
 			Accept: 'application/json',
 			'Content-Type': 'application/json',
-			Authorization: RECALL_API_KEY,
+			Authorization: recallApiKey,
 		},
 		body: JSON.stringify(payload),
 	});
@@ -133,9 +132,9 @@ export const createMeetingBot = async (input: CreateMeetingBotInput) => {
 	return raw as RecallBotResponse;
 };
 
-const recallHeaders = () => ({
+const recallHeaders = (apiKey: string) => ({
 	Accept: 'application/json',
-	Authorization: RECALL_API_KEY,
+	Authorization: apiKey,
 });
 
 const pickLatestByTimestamp = <T extends { completed_at?: string | null; created_at?: string }>(
@@ -211,8 +210,11 @@ const extractTranscriptText = (payload: unknown): string => {
 	return '';
 };
 
-const analyzeTranscriptWithGemini = async (transcript: string): Promise<TranscriptAnalysisResult> => {
-	const model = getGeminiModel(GEMINI_MODEL, GEMINI_TIMEOUTS.transcriptAnalysis);
+const analyzeTranscriptWithGemini = async (
+	transcript: string,
+	workspaceId: number
+): Promise<TranscriptAnalysisResult> => {
+	const model = await getGeminiModel(workspaceId, GEMINI_MODEL, GEMINI_TIMEOUTS.transcriptAnalysis);
 	const prompt = buildTranscriptAnalysisPrompt({ transcript });
 	const result = await model.generateContent(prompt);
 	const text = result.response.text();
@@ -237,10 +239,6 @@ export const retrieveBot = async (payload: RecallWebhookPayload): Promise<Recall
 		return { handled: false, message: 'Event ignored' };
 	}
 
-	if (!RECALL_API_KEY) {
-		throw new Error('Recall API key is not configured');
-	}
-
 	const botId = payload.data?.bot?.id;
 	console.log('Processing bot with ID:', botId);
 
@@ -258,9 +256,12 @@ export const retrieveBot = async (payload: RecallWebhookPayload): Promise<Recall
 		return { handled: false, message: 'Candidate not found for bot id' };
 	}
 
+	// The bot was created with this workspace's Recall key, so read it back with the same key.
+	const recallApiKey = await resolveApiKey(candidate.workspaceId, 'recall');
+
 	const recordingsResponse = await fetch(
 		`${RECALL_API_BASE_URL}/recording/?bot_id=${encodeURIComponent(botId)}&status_code=done`,
-		{ headers: recallHeaders() }
+		{ headers: recallHeaders(recallApiKey) }
 	);
 
 	const recordingsRaw = (await recordingsResponse.json().catch(() => ({}))) as RecallRecordingListResponse;
@@ -274,7 +275,7 @@ export const retrieveBot = async (payload: RecallWebhookPayload): Promise<Recall
 
 	const transcriptsResponse = await fetch(
 		`${RECALL_API_BASE_URL}/transcript/?recording_id=${encodeURIComponent(latestRecording.id)}&status_code=done`,
-		{ headers: recallHeaders() }
+		{ headers: recallHeaders(recallApiKey) }
 	);
 
 	const transcriptsRaw = (await transcriptsResponse.json().catch(() => ({}))) as RecallTranscriptListResponse;
@@ -286,7 +287,7 @@ export const retrieveBot = async (payload: RecallWebhookPayload): Promise<Recall
 
 	const transcriptResponse = await fetch(
 		`${RECALL_API_BASE_URL}/transcript/${encodeURIComponent(transcriptId)}/`,
-		{ headers: recallHeaders() }
+		{ headers: recallHeaders(recallApiKey) }
 	);
 
 	const transcriptRaw = (await transcriptResponse.json().catch(() => ({}))) as RecallTranscriptResponse;
@@ -309,7 +310,7 @@ export const retrieveBot = async (payload: RecallWebhookPayload): Promise<Recall
 	}
 
 	console.log('Invoking Gemini transcript analysis');
-	const analysis = await analyzeTranscriptWithGemini(transcriptText);
+	const analysis = await analyzeTranscriptWithGemini(transcriptText, candidate.workspaceId);
 	console.log('Transcript analysis complete', {
 		candidateId: candidate.id,
 		questionsAsked: analysis.questionsAsked.length,

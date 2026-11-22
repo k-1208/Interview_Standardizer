@@ -1,6 +1,8 @@
 import { GEMINI_EVALUATION_MODEL, GEMINI_TIMEOUTS, getGeminiModel } from '../config/gemini.js';
 
 interface EvaluationInput {
+  /** Needed for the LLM evaluation (uses the workspace's Gemini key). */
+  workspaceId?: number;
   candidateProfile: unknown;
   generatedResponse: unknown;
 }
@@ -316,10 +318,11 @@ const mergeEvaluations = (base: EndpointEvaluation, modelEval: EndpointEvaluatio
 };
 
 const evaluateWithModel = async (
+  workspaceId: number,
   candidateProfile: unknown,
   generatedResponse: unknown
 ): Promise<EndpointEvaluation> => {
-  const model = getGeminiModel(GEMINI_EVALUATION_MODEL, GEMINI_TIMEOUTS.evaluation);
+  const model = await getGeminiModel(workspaceId, GEMINI_EVALUATION_MODEL, GEMINI_TIMEOUTS.evaluation);
 
   const prompt = `You are a strict evaluator for AI endpoint quality.
 
@@ -369,13 +372,15 @@ export const quickEvaluateGeneratedResponse = ({
 }: EvaluationInput): EndpointEvaluation => deterministicEvaluation(candidateProfile, generatedResponse);
 
 export const evaluateGeneratedEndpointResponse = async ({
+  workspaceId,
   candidateProfile,
   generatedResponse,
 }: EvaluationInput): Promise<EndpointEvaluation> => {
   const deterministic = deterministicEvaluation(candidateProfile, generatedResponse);
+  if (!workspaceId) return deterministic;
 
   try {
-    const modelEvaluation = await evaluateWithModel(candidateProfile, generatedResponse);
+    const modelEvaluation = await evaluateWithModel(workspaceId, candidateProfile, generatedResponse);
     return mergeEvaluations(deterministic, modelEvaluation);
   } catch {
     return deterministic;

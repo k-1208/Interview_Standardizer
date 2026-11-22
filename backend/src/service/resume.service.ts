@@ -176,10 +176,10 @@ const extractText = async (bucket: string, key: string) => {
 };
 
 
-export const parseResume = async (pdfText: string): Promise<ParsedResume> => {
+export const parseResume = async (pdfText: string, workspaceId: number): Promise<ParsedResume> => {
   const prompt = buildResumeParsingPrompt(pdfText);
 
-  const model = getGeminiModel(GEMINI_MODEL, GEMINI_TIMEOUTS.resumeParse);
+  const model = await getGeminiModel(workspaceId, GEMINI_MODEL, GEMINI_TIMEOUTS.resumeParse);
   const response = await model.generateContent({
     contents: [{
       role: 'user',
@@ -330,7 +330,7 @@ const buildEnrichedParsedFields = (parsed: ParsedResume): EnrichedParsedField[] 
   return [...parsedFieldRows, ...academicRecordRows, ...competitiveExamRows];
 };
 
-export const parseResumeFile = async (fileId: number) => {
+export const parseResumeFile = async (fileId: number, workspaceId: number) => {
 
   const resumeFile = await prisma.resumeFile.findUnique({
     where: { id: fileId },
@@ -346,7 +346,7 @@ export const parseResumeFile = async (fileId: number) => {
 
   const rawText = await extractText(RESUME_BUCKET, resumeFile.resumeKey);
   const startedAt = Date.now();
-  const parsed = await parseResume(rawText);
+  const parsed = await parseResume(rawText, workspaceId);
   console.log(`[parseResumeFile] parse finished in ${Date.now() - startedAt}ms`, {
     fileId,
     hasSummary: Boolean(parsed.profile.aiSummary?.summary),

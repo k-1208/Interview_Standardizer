@@ -118,9 +118,10 @@ const generateQuestionsWithGemini = async (
   parsedResumeData: unknown,
   desiredCount: number,
   interviewDurationMinutes: number,
-  difficulty: InterviewDifficulty
+  difficulty: InterviewDifficulty,
+  workspaceId: number
 ) => {
-  const model = getGeminiModel(GEMINI_MODEL, GEMINI_TIMEOUTS.questionGeneration);
+  const model = await getGeminiModel(workspaceId, GEMINI_MODEL, GEMINI_TIMEOUTS.questionGeneration);
 
   const prompt = buildStructuredInterviewPrompt({
     parsedResumeData,
@@ -299,7 +300,8 @@ export const generateInterviewQuestions = async (input: GenerateInterviewQuestio
         parsedResumeData,
         desiredCount,
         interviewDurationMinutes,
-        difficulty
+        difficulty,
+        input.workspaceId
       );
 
   if (!existingQuestions && input.candidateId) {
@@ -325,6 +327,7 @@ export const generateInterviewQuestions = async (input: GenerateInterviewQuestio
   // evaluation used to block this response (a second full model call); it now runs
   // in the background for freshly generated questions and is only logged.
   const evaluationInput = {
+    workspaceId: input.workspaceId,
     candidateProfile: parsedResumeData,
     generatedResponse: { questions },
   };
