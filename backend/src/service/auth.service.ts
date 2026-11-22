@@ -82,6 +82,10 @@ export async function registerUserFromInvitation(
     throw new HttpError(409, 'Invitation expired or already used');
   }
 
+  if (invitation.role === 'super_admin') {
+    throw new HttpError(400, 'Invitation has an invalid role');
+  }
+
   if (normalizedEmail !== invitation.email.toLowerCase()) {
     throw new HttpError(409, 'Email must match the invitation');
   }

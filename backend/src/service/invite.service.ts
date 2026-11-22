@@ -8,6 +8,19 @@ type WorkspaceRole = 'super_admin' | 'admin' | 'reviewer';
 
 const INVITE_EXPIRY_DAYS = 7;
 
+// Roles that can be granted through an invitation. super_admin is never invitable.
+const INVITABLE_ROLES: readonly WorkspaceRole[] = ['admin', 'reviewer'];
+// What each inviter role may hand out — mirrors the member-management rules
+// (admins can only manage reviewers).
+const GRANTABLE_ROLES: Record<WorkspaceRole, readonly WorkspaceRole[]> = {
+	super_admin: ['admin', 'reviewer'],
+	admin: ['reviewer'],
+	reviewer: [],
+};
+
+export const isInvitableRole = (role: unknown): role is WorkspaceRole =>
+	typeof role === 'string' && (INVITABLE_ROLES as readonly string[]).includes(role);
+
 export interface InvitePayload {
 	email: string;
 	role: WorkspaceRole;
@@ -20,7 +33,25 @@ export const inviteWorkspaceMember = async ({ email, role, workspaceId, invitedB
 	const token = generateToken(32);
 	const expiresAt = new Date(Date.now() + INVITE_EXPIRY_DAYS * 24 * 60 * 60 * 1000);
 
-	await requireWorkspaceInvitePermission(invitedById, workspaceId);
+	if (!isInvitableRole(role)) {
+		throw new HttpError(400, 'Role must be admin or reviewer');
+	}
+
+	const inviterMembership = await requireWorkspaceInvitePermission(invitedById, workspaceId);
+	const inviterRole = inviterMembership.role as WorkspaceRole;
+	if (!GRANTABLE_ROLES[inviterRole].includes(role)) {
+		throw new HttpError(403, `As ${inviterRole.replace('_', ' ')} you can only invite: ${GRANTABLE_ROLES[inviterRole].join(', ')}`);
+	}
+
+	// Existing members are managed through the member endpoints, not re-invited —
+	// otherwise an invite could be used to change anyone's (or your own) role.
+	const existingMember = await prisma.workspaceMember.findFirst({
+		where: { workspaceId, user: { email: normalizedEmail } },
+		select: { id: true },
+	});
+	if (existingMember) {
+		throw new HttpError(409, 'This person is already a member of the workspace');
+	}
 
 	const [workspace, inviter] = await Promise.all([
 		prisma.workspace.findUnique({ where: { id: workspaceId }, select: { id: true, name: true, slug: true } }),
@@ -160,9 +191,14 @@ export const acceptInvitation = async (token: string, userId: number) => {
 		throw new HttpError(403, 'Invitation email does not match user');
 	}
 
+	if (!isInvitableRole(invitation.role)) {
+		throw new HttpError(400, 'Invitation has an invalid role');
+	}
+
+	// Accepting never changes an existing membership's role (no escalation via invites).
 	await prisma.workspaceMember.upsert({
 		where: { userId_workspaceId: { userId, workspaceId: invitation.workspaceId } },
-		update: { role: invitation.role },
+		update: {},
 		create: {
 			userId,
 			workspaceId: invitation.workspaceId,
