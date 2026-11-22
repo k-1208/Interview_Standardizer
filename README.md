@@ -51,7 +51,7 @@ docker compose --env-file .env.docker up -d --build
 - To use an external database (e.g. Supabase), set `DATABASE_URL`/`DIRECT_URL` in `.env.docker`; the bundled Postgres can then be ignored.
 - Change the host ports with `BACKEND_PORT` / `FRONTEND_PORT`.
 - Scale workers with `docker compose --env-file .env.docker up -d --scale worker=3`.
-- The API and workers refuse to start without the AWS and Gemini variables set.
+- The API and workers refuse to start without `JWT_SECRET` and the AWS variables. Gemini/Recall keys can come from `.env` or be set per workspace in Settings.
 
 ## Local development
 
@@ -95,12 +95,16 @@ Start the backend first so the frontend can connect to it.
 | `REDIS_URL` | yes | e.g. `redis://localhost:6379` |
 | `PDF_QUEUE_NAME` / `EMAIL_QUEUE_NAME` | no | Queue names (default `pdf-processing` / `email-dispatch`) |
 | `RUN_WORKERS` | no | `false` to keep workers out of the API process (default `true`) |
-| `JWT_SECRET` | yes | Long random string used to sign login tokens |
+| `JWT_SECRET` | yes | ≥ 32 random characters (`openssl rand -hex 32`); the API refuses to start if it is missing, short or a placeholder |
+| `COOKIE_SAME_SITE` | no | `lax` (default) when frontend and API share a site (e.g. `app.x.com` + `api.x.com`, or Docker on localhost); `none` if they are on different sites (HTTPS only) |
+| `COOKIE_DOMAIN` | no | Cookie domain, e.g. `.example.com` |
+| `TRUST_PROXY` | no | `true` (or a hop count) behind a reverse proxy / load balancer |
 | `FRONTEND_URL` | yes | Browser URL of the frontend; used for CORS and links in emails |
 | `AWS_REGION`, `AWS_ACCESS_KEY`, `AWS_SECRET_KEY`, `S3_BUCKET` | yes | Resume storage |
-| `GEMINI_API_KEY` | yes | Gemini key; `GEMINI_MODEL` / `GEMINI_EVALUATION_MODEL` optionally override the models |
+| `GEMINI_API_KEY` | no* | Server-wide default Gemini key (*required unless every workspace sets its own in Settings); `GEMINI_MODEL` / `GEMINI_EVALUATION_MODEL` optionally override the models |
+| `SETTINGS_ENCRYPTION_KEY` | for workspace keys | 32-byte key (`openssl rand -hex 32`) that encrypts API keys saved in Settings. Never change it after keys are saved |
 | `GEMINI_PARSE_TIMEOUT_MS`, `GEMINI_QUESTIONS_TIMEOUT_MS`, `GEMINI_EVALUATION_TIMEOUT_MS`, `GEMINI_TRANSCRIPT_TIMEOUT_MS` | no | Per-call AI time limits (defaults 90s / 60s / 60s / 90s) |
-| `RECALL_API_KEY` | for bots | Recall.ai key; `RECALL_API_BASE_URL` optionally overrides the region |
+| `RECALL_API_KEY` | for bots | Server-wide default Recall.ai key (workspaces can override); `RECALL_API_BASE_URL` optionally overrides the region |
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM_EMAIL` | for email | Outgoing mail |
 
 Frontend: `NEXT_PUBLIC_BACKEND_URL` — browser URL of the API.
@@ -122,6 +126,25 @@ The **Delete** button on the candidate profile (admins and super admins only) do
 
 ### AI summary storage
 `candidates.aiSummary` stores JSON text: `{ "summary": "...", "keyInsights": [...], "growthAreas": [...] }`. Rows created before this change hold a plain-text summary; the API normalises both into the same object shape.
+
+## Workspace API keys
+Admins and super admins can set the workspace's own **Google Gemini** and **Recall.ai** keys in **Settings → API keys**.
+- Keys are encrypted with AES-256-GCM (`SETTINGS_ENCRYPTION_KEY`) before they are stored; the API only ever returns a masked form like `AIza••••••••x9Qk`, plus who last changed it and when.
+- To change a key, enter a new one; removing it falls back to the server default from `.env`.
+- Every AI call and meeting bot uses the workspace's key when set, otherwise the server default. If neither exists, the action fails with a message pointing to Settings.
+- Changes apply immediately in the API process and within a minute in separate worker processes.
+- Endpoints: `GET /api/workspaces/:workspaceId/api-keys`, `PUT …/api-keys/:provider` (`{ "value": "…" }`), `DELETE …/api-keys/:provider` — `provider` is `gemini` or `recall`.
+
+## Security notes
+- **Sessions:** the login token is only ever stored in an `httpOnly` cookie — it is not returned in response bodies or kept in `localStorage`, so page scripts can't read it. Logging out revokes every token issued to that user (`users.tokenVersion`).
+- **CSRF:** state-changing requests must send `X-Requested-With: XMLHttpRequest` (the frontend does this). Browsers only allow that header cross-origin after a CORS preflight, which only our frontend origins pass. `/api/webhooks/*` is exempt.
+- **Tenant isolation:** every candidate lookup, including AI question generation and bot dispatch, is scoped to a workspace the user belongs to.
+- **Invitations:** only `admin` or `reviewer` can be invited; admins can only invite reviewers; existing members can't be re-invited, and accepting an invitation never changes an existing role.
+- **Passwords:** at least 8 characters with an uppercase letter, a lowercase letter, a number and a special character (enforced by the API and shown live in the UI). Hashed with bcrypt (cost 12).
+- **Headers:** `helmet` on the API; CSP, `X-Frame-Options: DENY`, `nosniff`, Referrer-Policy, Permissions-Policy and HSTS on the frontend.
+- **Logs:** resume content, transcripts and full email addresses are not logged.
+
+> If the frontend and API are deployed on **different sites** (e.g. `*.vercel.app` + another domain), set `COOKIE_SAME_SITE=none` and serve both over HTTPS. Some browsers (Safari) block such third-party cookies entirely, so prefer hosting both under one domain (`app.example.com` / `api.example.com`).
 
 ## Reliability notes
 - **Health:** `GET /health` only says the process is up; `GET /ready` returns 503 with per-dependency status when Postgres or Redis is unreachable.
