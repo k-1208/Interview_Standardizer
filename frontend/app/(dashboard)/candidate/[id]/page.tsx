@@ -542,7 +542,12 @@ export default function CandidateProfilePage() {
                     setBotError("");
                     setBotSuccess("");
                     setIsSendingBot(true);
+                    if (!selectedWorkspaceId) {
+                      setBotError("No workspace selected");
+                      return;
+                    }
                     await sendInterviewBot({
+                      workspaceId: selectedWorkspaceId,
                       meetingUrl,
                       candidateId: Number(id),
                       botName: botName.trim() || undefined,

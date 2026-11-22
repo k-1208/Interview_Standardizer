@@ -15,6 +15,7 @@ interface ApiResponse<T> {
 }
 
 export interface GenerateQuestionsInput {
+  workspaceId: number;
   candidateId?: number;
   role?: string;
   context?: string;
@@ -68,6 +69,7 @@ export const generateInterviewQuestions = async (input: GenerateQuestionsInput) 
 };
 
 export interface SendBotInput {
+  workspaceId: number;
   meetingUrl: string;
   candidateId?: number;
   botName?: string;

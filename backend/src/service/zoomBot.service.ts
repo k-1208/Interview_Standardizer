@@ -7,6 +7,8 @@ import { prisma } from '../utils/prismaClient.js';
 import { notifyInterviewCompleted } from './emailNotification.service.js';
 
 type CreateMeetingBotInput = {
+	/** Membership already verified by requireWorkspaceAccess. */
+	workspaceId: number;
 	meetingUrl: string;
 	botName?: string;
 	joinAt?: string | null;
@@ -74,6 +76,18 @@ type TranscriptAnalysisResult = {
 export const createMeetingBot = async (input: CreateMeetingBotInput) => {
 	if (!RECALL_API_KEY) {
 		throw new Error('Recall API key is not configured');
+	}
+
+	// The bot's transcript is written onto this candidate, so it must belong to the
+	// caller's workspace (and not be deleted) before we create anything.
+	if (input.candidateId) {
+		const candidate = await prisma.candidate.findFirst({
+			where: { id: input.candidateId, workspaceId: input.workspaceId, isDeleted: false },
+			select: { id: true },
+		});
+		if (!candidate) {
+			throw new HttpError(404, 'Candidate not found in this workspace');
+		}
 	}
 
 	const overrides: Parameters<typeof buildRecallBotPayload>[1] = {

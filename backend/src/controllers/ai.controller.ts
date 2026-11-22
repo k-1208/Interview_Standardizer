@@ -17,13 +17,14 @@ export const generateQuestions = async (req: Request, res: Response): Promise<vo
 
   try {
     const payload: {
+      workspaceId: number;
       candidateId?: number | null;
       role?: string;
       context?: string;
       count?: number;
       interviewDurationMinutes?: number;
       difficulty?: 'easy' | 'medium' | 'hard';
-    } = {};
+    } = { workspaceId: req.membership!.workspaceId };
 
     if (candidateId) payload.candidateId = Number(candidateId);
     if (role) payload.role = String(role);
@@ -61,7 +62,14 @@ export const sendInterviewBot = async (req: Request, res: Response): Promise<voi
   }
 
   try {
-    const payload: { meetingUrl: string; candidateId?: number | null; botName?: string; joinAt?: string | null } = {
+    const payload: {
+      workspaceId: number;
+      meetingUrl: string;
+      candidateId?: number | null;
+      botName?: string;
+      joinAt?: string | null;
+    } = {
+      workspaceId: req.membership!.workspaceId,
       meetingUrl,
       candidateId: candidateId ? Number(candidateId) : null,
     };

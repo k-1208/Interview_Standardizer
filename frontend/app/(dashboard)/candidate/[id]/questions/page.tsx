@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { generateInterviewQuestions } from "@/api/ai";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { InterviewQuestion } from "@/lib/mock-data";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -42,6 +43,7 @@ const difficultySentiment: Record<string, { up: string; down: string }> = {
 
 export default function AIQuestionsPage() {
   const { id } = useParams<{ id: string }>();
+  const { selectedWorkspaceId } = useWorkspace();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [activeFilter, setActiveFilter] = useState<string>("all");
@@ -60,12 +62,14 @@ export default function AIQuestionsPage() {
   const explainQuestion = questions.find((q) => q.id === explainId);
 
   const generateQuestions = useCallback(async () => {
+    if (!selectedWorkspaceId) return;
     try {
       setIsGenerating(true);
       setError("");
       setExplainId(null);
 
       const response = await generateInterviewQuestions({
+        workspaceId: selectedWorkspaceId,
         candidateId: Number(id),
         count: 6,
         difficulty: "medium",
@@ -101,7 +105,7 @@ export default function AIQuestionsPage() {
     } finally {
       setIsGenerating(false);
     }
-  }, [id]);
+  }, [id, selectedWorkspaceId]);
 
   useEffect(() => {
     if (searchParams.get("generate") === "1") {

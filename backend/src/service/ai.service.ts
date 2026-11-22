@@ -7,6 +7,8 @@ import { extractJsonFromModelText, generateToken, jsonToStringArray } from '../u
 import { HttpError } from '../utils/httpError.js';
 
 interface GenerateInterviewQuestionsInput {
+  /** Membership already verified by requireWorkspaceAccess. */
+  workspaceId: number;
   candidateId?: number| null;
   role?: string;
   context?: string;
@@ -147,8 +149,9 @@ export const generateInterviewQuestions = async (input: GenerateInterviewQuestio
   let existingGeneratedAt: string | null = null;
 
   if (input.candidateId) {
-    const candidate = await prisma.candidate.findUnique({
-      where: { id: Number(input.candidateId) },
+    // Scoped to the caller's workspace so candidates of other organisations are unreachable.
+    const candidate = await prisma.candidate.findFirst({
+      where: { id: Number(input.candidateId), workspaceId: input.workspaceId, isDeleted: false },
       select: {
         id: true,
         name: true,
