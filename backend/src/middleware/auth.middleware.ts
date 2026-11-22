@@ -1,8 +1,6 @@
 import type { Request, Response, NextFunction } from 'express';
-import jwt from 'jsonwebtoken';
-import type { JwtPayload } from '../service/auth.service.js';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'changeme_use_strong_secret_in_env';
+import { AUTH_COOKIE_NAME, verifyAuthToken, type JwtPayload } from '../config/auth.js';
+import { prisma } from '../utils/prismaClient.js';
 
 // Extend Express Request to carry the decoded user
 declare global {
@@ -13,24 +11,43 @@ declare global {
   }
 }
 
-export function requireAuth(req: Request, res: Response, next: NextFunction): void {
-  // Accept token from httpOnly cookie or Authorization header (Bearer <token>)
-  const token =
-    req.cookies?.token ||
-    (req.headers.authorization?.startsWith('Bearer ')
-      ? req.headers.authorization.slice(7)
-      : undefined);
+/**
+ * Authenticates via the httpOnly auth cookie only (the token is never exposed to
+ * page scripts). The token's version must match users.tokenVersion, so logging out
+ * revokes every token issued before it.
+ */
+export async function requireAuth(req: Request, res: Response, next: NextFunction): Promise<void> {
+  const token: unknown = req.cookies?.[AUTH_COOKIE_NAME];
 
-  if (!token) {
+  if (typeof token !== 'string' || !token) {
     res.status(401).json({ success: false, message: 'Unauthorized — no token provided' });
     return;
   }
 
+  let decoded: JwtPayload;
   try {
-    const decoded = jwt.verify(token, JWT_SECRET) as JwtPayload;
-    req.user = decoded;
-    next();
+    decoded = verifyAuthToken(token);
   } catch {
     res.status(401).json({ success: false, message: 'Unauthorized — invalid or expired token' });
+    return;
   }
+
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: decoded.userId },
+      select: { tokenVersion: true },
+    });
+
+    if (!user || user.tokenVersion !== decoded.tv) {
+      res.status(401).json({ success: false, message: 'Unauthorized — session has ended' });
+      return;
+    }
+  } catch (error) {
+    console.error('[requireAuth] Failed to verify session:', error);
+    res.status(500).json({ success: false, message: 'Internal server error' });
+    return;
+  }
+
+  req.user = decoded;
+  next();
 }

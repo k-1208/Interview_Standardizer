@@ -114,6 +114,8 @@ model User {
   organizationName  String            @db.VarChar(200)
   email             String            @unique @db.VarChar(150)
   passwordHash      String            @db.VarChar(255)
+  // Embedded in issued JWTs; incrementing it (logout) revokes all existing tokens.
+  tokenVersion      Int               @default(0)
   createdAt         DateTime          @default(now())
   updatedAt         DateTime          @updatedAt
 

@@ -1,16 +1,22 @@
 import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
 import { prisma } from '../utils/prismaClient.js';
 import { createWorkspaceForUserInTransaction } from './workspace.service.js';
 import { HttpError } from '../utils/httpError.js';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'changeme_use_strong_secret_in_env';
-const JWT_EXPIRES_IN = '7d';
+import { signAuthToken } from '../config/auth.js';
+import { passwordPolicyMessage, passwordProblems } from '../utils/passwordPolicy.js';
 
-export interface JwtPayload {
-  userId: number;
-  email: string;
-}
+const BCRYPT_ROUNDS = 12;
+// Compared against when the email doesn't exist, so login takes the same time
+// whether or not an account exists (no user enumeration via timing).
+const DUMMY_PASSWORD_HASH = bcrypt.hashSync('timing-equaliser-not-a-real-password', BCRYPT_ROUNDS);
+
+const assertPasswordPolicy = (password: string) => {
+  const problems = passwordProblems(password);
+  if (problems.length > 0) {
+    throw new HttpError(400, passwordPolicyMessage(problems));
+  }
+};
 
 // ─── Register ─────────────────────────────────────────────────────────────────
 
@@ -20,17 +26,18 @@ export async function registerUser(
   email: string,
   password: string
 ) {
-  console.log('[auth/registerUser] Checking existing user', { email });
-  const existing = await prisma.user.findUnique({ where: { email } });
+  assertPasswordPolicy(password);
+  const normalizedEmail = email.trim().toLowerCase();
+  const existing = await prisma.user.findUnique({ where: { email: normalizedEmail } });
   if (existing) {
     throw new HttpError(409, 'Email already in use');
   }
-  const passwordHash = await bcrypt.hash(password, 10);
+  const passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS);
 
   const user = await prisma.$transaction(async (tx) => {
     const createdUser = await tx.user.create({
-      data: { name, organizationName, email, passwordHash },
-      select: { id: true, name: true, organizationName: true, email: true, createdAt: true },
+      data: { name, organizationName, email: normalizedEmail, passwordHash },
+      select: { id: true, name: true, organizationName: true, email: true, createdAt: true, tokenVersion: true },
     });
 
     await createWorkspaceForUserInTransaction(tx, createdUser.id, organizationName);
@@ -38,13 +45,10 @@ export async function registerUser(
     return createdUser;
   });
   
-  const token = jwt.sign(
-    { userId: user.id, email: user.email } satisfies JwtPayload,
-    JWT_SECRET,
-    { expiresIn: JWT_EXPIRES_IN }
-  );
+  const token = signAuthToken({ userId: user.id, email: user.email, tv: user.tokenVersion });
 
-  return { user, token };
+  const { tokenVersion: _tv, ...safeUser } = user;
+  return { user: safeUser, token };
 }
 
 // ─── Register via workspace invitation (no new workspace) ─────────────────────
@@ -55,6 +59,7 @@ export async function registerUserFromInvitation(
   password: string,
   inviteToken: string
 ) {
+  assertPasswordPolicy(password);
   const normalizedEmail = email.trim().toLowerCase();
 
   const invitation = await prisma.invitation.findUnique({
@@ -95,7 +100,7 @@ export async function registerUserFromInvitation(
     throw new HttpError(409, 'Email already in use — sign in and accept the invitation');
   }
 
-  const passwordHash = await bcrypt.hash(password, 10);
+  const passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS);
 
   const user = await prisma.$transaction(async (tx) => {
     const createdUser = await tx.user.create({
@@ -105,7 +110,7 @@ export async function registerUserFromInvitation(
         email: normalizedEmail,
         passwordHash,
       },
-      select: { id: true, name: true, organizationName: true, email: true, createdAt: true },
+      select: { id: true, name: true, organizationName: true, email: true, createdAt: true, tokenVersion: true },
     });
 
     await tx.workspaceMember.create({
@@ -124,13 +129,10 @@ export async function registerUserFromInvitation(
     return createdUser;
   });
 
-  const token = jwt.sign(
-    { userId: user.id, email: user.email } satisfies JwtPayload,
-    JWT_SECRET,
-    { expiresIn: JWT_EXPIRES_IN }
-  );
+  const token = signAuthToken({ userId: user.id, email: user.email, tv: user.tokenVersion });
 
-  return { user, token };
+  const { tokenVersion: _tv, ...safeUser } = user;
+  return { user: safeUser, token };
 }
 
 // ─── Login ────────────────────────────────────────────────────────────────────
@@ -138,25 +140,15 @@ export async function registerUserFromInvitation(
 export async function loginUser(email: string, password: string) {
   const normalizedEmail = (email || '').toLowerCase().trim();
   const user = await prisma.user.findUnique({ where: { email: normalizedEmail } });
-  if (!user) {
+  const valid = await bcrypt.compare(String(password ?? ''), user?.passwordHash ?? DUMMY_PASSWORD_HASH);
+  if (!user || !valid) {
     throw new HttpError(401, 'Invalid credentials');
   }
 
-  // @ts-ignore
-  const valid = await bcrypt.compare(password, user.passwordHash as string);
-  if (!valid) {
-    throw new HttpError(401, 'Invalid credentials');
-  }
+  const token = signAuthToken({ userId: user.id, email: user.email, tv: user.tokenVersion });
 
-  const token = jwt.sign(
-    { userId: user.id, email: user.email } satisfies JwtPayload,
-    JWT_SECRET,
-    { expiresIn: JWT_EXPIRES_IN }
-  );
-
-  // Strip passwordHash before returning
-  // @ts-ignore
-  const { passwordHash: _removed, ...safeUser } = user;
+  // Strip secrets before returning
+  const { passwordHash: _removed, tokenVersion: _tv, ...safeUser } = user;
   return { user: safeUser, token };
 }
 
@@ -187,4 +179,14 @@ export async function getMe(userId: number) {
   }
 
   return user;
+}
+
+// ─── Logout: revoke every token issued so far ────────────────────────────────
+
+export async function revokeUserTokens(userId: number, tokenVersion: number) {
+  // Only bump if the presented token is still current (idempotent for stale tokens).
+  await prisma.user.updateMany({
+    where: { id: userId, tokenVersion },
+    data: { tokenVersion: { increment: 1 } },
+  });
 }

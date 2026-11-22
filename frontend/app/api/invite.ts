@@ -1,13 +1,6 @@
 const BACKEND_BASE_URL =
 	process.env.NEXT_PUBLIC_BACKEND_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
 
-const AUTH_TOKEN_KEY = 'auth_token';
-
-const getStoredToken = () => {
-	if (typeof window === 'undefined') return null;
-	return window.localStorage.getItem(AUTH_TOKEN_KEY);
-};
-
 interface ApiResponse<T> {
 	success: boolean;
 	message?: string;
@@ -21,14 +14,13 @@ export interface InviteMemberInput {
 }
 
 export const inviteMember = async (input: InviteMemberInput): Promise<any> => {
-	const token = getStoredToken();
 	const response = await fetch(`${BACKEND_BASE_URL}/api/user/invite`, {
 		method: 'POST',
 		credentials: 'include',
 		headers: {
 			'Content-Type': 'application/json',
 			'ngrok-skip-browser-warning': 'true',
-			...(token ? { Authorization: `Bearer ${token}` } : {}),
+			'X-Requested-With': 'XMLHttpRequest',
 		},
 		body: JSON.stringify(input),
 	});
@@ -65,14 +57,13 @@ export const emailsMatch = (left?: string | null, right?: string | null) =>
 	!!left && !!right && left.trim().toLowerCase() === right.trim().toLowerCase();
 
 export const acceptInvite = async (tokenValue: string): Promise<any> => {
-	const token = getStoredToken();
 	const response = await fetch(`${BACKEND_BASE_URL}/api/user/invite/accept`, {
 		method: 'POST',
 		credentials: 'include',
 		headers: {
 			'Content-Type': 'application/json',
 			'ngrok-skip-browser-warning': 'true',
-			...(token ? { Authorization: `Bearer ${token}` } : {}),
+			'X-Requested-With': 'XMLHttpRequest',
 		},
 		body: JSON.stringify({ token: tokenValue }),
 	});

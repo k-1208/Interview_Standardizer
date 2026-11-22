@@ -10,7 +10,7 @@ import {
   type ReactNode,
 } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { clearStoredToken, getStoredToken, me, type MeResponse } from "@/api/auth";
+import { clearSessionHint, hasSessionHint, me, type MeResponse } from "@/api/auth";
 
 export const SELECTED_WORKSPACE_KEY = "selected_workspace_id";
 
@@ -58,8 +58,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    const token = getStoredToken();
-    if (!token) {
+    if (!hasSessionHint()) {
       router.replace("/");
       return;
     }
@@ -71,7 +70,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
         await refreshMe();
       } catch {
         if (isMounted) {
-          clearStoredToken();
+          clearSessionHint();
           router.replace("/");
         }
       } finally {

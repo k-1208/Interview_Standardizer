@@ -3,11 +3,13 @@
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowRight, Eye, EyeOff, Shield } from "lucide-react";
-import { clearStoredToken, getStoredToken, logout, me, register } from "@/api/auth";
+import { clearSessionHint, hasSessionHint, logout, me, register } from "@/api/auth";
 import { acceptInvite, emailsMatch, validateInvite } from "@/api/invite";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PasswordRequirements } from "@/components/ui/password-requirements";
+import { isPasswordValid, PASSWORD_MAX_LENGTH, PASSWORD_POLICY_ERROR } from "@/lib/passwordPolicy";
 
 function RegisterPageContent() {
   const router = useRouter();
@@ -51,8 +53,7 @@ function RegisterPageContent() {
   }, [inviteToken]);
 
   useEffect(() => {
-    const token = getStoredToken();
-    if (!token) return;
+    if (!hasSessionHint()) return;
 
     const handleExistingSession = async () => {
       try {
@@ -63,7 +64,7 @@ function RegisterPageContent() {
             try {
               await logout();
             } catch {
-              clearStoredToken();
+              clearSessionHint();
             }
             return;
           }
@@ -71,7 +72,7 @@ function RegisterPageContent() {
         }
         router.push("/dashboard");
       } catch {
-        clearStoredToken();
+        clearSessionHint();
       }
     };
 
@@ -81,6 +82,12 @@ function RegisterPageContent() {
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage("");
+
+    if (!isPasswordValid(password)) {
+      setErrorMessage(PASSWORD_POLICY_ERROR);
+      setIsLoading(false);
+      return;
+    }
 
     if (password !== confirmPassword) {
       setErrorMessage("Passwords do not match.");
@@ -230,6 +237,9 @@ function RegisterPageContent() {
                   onChange={(e) => setPassword(e.target.value)}
                   className="h-12 bg-white text-slate-900 placeholder:text-slate-400 border-slate-200 focus:border-indigo-500 rounded-lg shadow-sm pr-10"
                   required
+                  autoComplete="new-password"
+                  maxLength={PASSWORD_MAX_LENGTH}
+                  aria-describedby="password-requirements"
                 />
                 <button
                   type="button"
@@ -238,6 +248,9 @@ function RegisterPageContent() {
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
+              </div>
+              <div id="password-requirements">
+                <PasswordRequirements password={password} className="text-slate-600 pt-1" />
               </div>
             </div>
 
@@ -254,6 +267,8 @@ function RegisterPageContent() {
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   className="h-12 bg-white text-slate-900 placeholder:text-slate-400 border-slate-200 focus:border-indigo-500 rounded-lg shadow-sm pr-10"
                   required
+                  autoComplete="new-password"
+                  maxLength={PASSWORD_MAX_LENGTH}
                 />
                 <button
                   type="button"

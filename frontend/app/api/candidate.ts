@@ -1,13 +1,6 @@
 const BACKEND_BASE_URL =
 	process.env.NEXT_PUBLIC_BACKEND_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
 
-const AUTH_TOKEN_KEY = 'auth_token';
-
-const getStoredToken = () => {
-	if (typeof window === 'undefined') return null;
-	return window.localStorage.getItem(AUTH_TOKEN_KEY);
-};
-
 interface ApiResponse<T> {
 	success: boolean;
 	message?: string;
@@ -40,13 +33,12 @@ export interface CandidateListResponse {
 }
 
 export const getCandidates = async (workspaceId: number) => {
-	const token = getStoredToken();
 	const response = await fetch(`${BACKEND_BASE_URL}/api/candidates?workspaceId=${workspaceId}`, {
 		credentials: 'include',
 		headers: {
 			'Content-Type': 'application/json',
 			'ngrok-skip-browser-warning': 'true',
-			...(token ? { Authorization: `Bearer ${token}` } : {}),
+			'X-Requested-With': 'XMLHttpRequest',
 		},
 	});
 
@@ -189,7 +181,6 @@ export interface CandidateTranscriptAnalysisResponse {
 }
 
 export const getCandidateById = async (candidateId: number, workspaceId: number) => {
-	const token = getStoredToken();
 	const response = await fetch(
 		`${BACKEND_BASE_URL}/api/candidates/${candidateId}?workspaceId=${workspaceId}`,
 		{
@@ -197,7 +188,7 @@ export const getCandidateById = async (candidateId: number, workspaceId: number)
 			headers: {
 				'Content-Type': 'application/json',
 				'ngrok-skip-browser-warning': 'true',
-				...(token ? { Authorization: `Bearer ${token}` } : {}),
+				'X-Requested-With': 'XMLHttpRequest',
 			},
 		}
 	);
@@ -212,7 +203,6 @@ export const getCandidateById = async (candidateId: number, workspaceId: number)
 };
 
 export const getCandidateTranscriptAnalysis = async (candidateId: number, workspaceId: number) => {
-	const token = getStoredToken();
 	const response = await fetch(
 		`${BACKEND_BASE_URL}/api/candidates/${candidateId}/transcript-analysis?workspaceId=${workspaceId}`,
 		{
@@ -220,7 +210,7 @@ export const getCandidateTranscriptAnalysis = async (candidateId: number, worksp
 			headers: {
 				'Content-Type': 'application/json',
 				'ngrok-skip-browser-warning': 'true',
-				...(token ? { Authorization: `Bearer ${token}` } : {}),
+				'X-Requested-With': 'XMLHttpRequest',
 			},
 		}
 	);
@@ -235,7 +225,6 @@ export const getCandidateTranscriptAnalysis = async (candidateId: number, worksp
 };
 
 export const assignReviewer = async (candidateId: number, workspaceId: number, reviewerId: number) => {
-	const token = getStoredToken();
 	const response = await fetch(
 		`${BACKEND_BASE_URL}/api/candidates/${candidateId}/assign`,
 		{
@@ -244,7 +233,7 @@ export const assignReviewer = async (candidateId: number, workspaceId: number, r
 			headers: {
 				'Content-Type': 'application/json',
 				'ngrok-skip-browser-warning': 'true',
-				...(token ? { Authorization: `Bearer ${token}` } : {}),
+				'X-Requested-With': 'XMLHttpRequest',
 			},
 			body: JSON.stringify({ workspaceId, reviewerId }),
 		}
@@ -260,7 +249,6 @@ export const assignReviewer = async (candidateId: number, workspaceId: number, r
 };
 // Soft delete: the backend only flags the candidate as deleted; data is retained.
 export const deleteCandidate = async (candidateId: number, workspaceId: number) => {
-	const token = getStoredToken();
 	const response = await fetch(
 		`${BACKEND_BASE_URL}/api/candidates/${candidateId}?workspaceId=${workspaceId}`,
 		{
@@ -269,7 +257,7 @@ export const deleteCandidate = async (candidateId: number, workspaceId: number) 
 			headers: {
 				'Content-Type': 'application/json',
 				'ngrok-skip-browser-warning': 'true',
-				...(token ? { Authorization: `Bearer ${token}` } : {}),
+				'X-Requested-With': 'XMLHttpRequest',
 			},
 		}
 	);

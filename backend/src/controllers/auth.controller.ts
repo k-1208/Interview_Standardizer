@@ -1,20 +1,18 @@
 import { sendError } from '../utils/httpError.js';
 import type { Request, Response } from 'express';
-import { registerUser, registerUserFromInvitation, loginUser, getMe } from '../service/auth.service.js';
-
-const COOKIE_OPTIONS = {
-  httpOnly: true,
-  secure: process.env.NODE_ENV === 'production',
-  sameSite: 'lax' as const,
-  maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days in ms
-};
+import { registerUser, registerUserFromInvitation, loginUser, getMe, revokeUserTokens } from '../service/auth.service.js';
+import {
+  AUTH_COOKIE_CLEAR_OPTIONS,
+  AUTH_COOKIE_NAME,
+  AUTH_COOKIE_OPTIONS,
+  verifyAuthToken,
+} from '../config/auth.js';
 
 export async function register(req: Request, res: Response): Promise<void> {
   const { organizationName, email, password, inviteToken } = req.body;
   let { name } = req.body;
 
-  if (!email || !password) {
-    console.log('[auth/register] Validation failed: missing required fields');
+  if (typeof email !== 'string' || typeof password !== 'string' || !email || !password) {
     res.status(400).json({ success: false, message: 'email and password are required' });
     return;
   }
@@ -39,8 +37,8 @@ export async function register(req: Request, res: Response): Promise<void> {
     const { user, token } = inviteToken
       ? await registerUserFromInvitation(name, email, password, inviteToken)
       : await registerUser(name, organizationName, email, password);
-    res.cookie('token', token, COOKIE_OPTIONS);
-    res.status(201).json({ success: true, data: { user, token } });
+    res.cookie(AUTH_COOKIE_NAME, token, AUTH_COOKIE_OPTIONS);
+    res.status(201).json({ success: true, data: { user } });
   } catch (err) {
     sendError(res, err, 'auth/register', 'Registration failed. Please try again.');
   }
@@ -48,24 +46,33 @@ export async function register(req: Request, res: Response): Promise<void> {
 
 
 export async function login(req: Request, res: Response): Promise<void> {
-  const { email, password } = req.body;
+  const { email, password } = req.body || {};
 
-  if (!email || !password) {
+  if (typeof email !== 'string' || typeof password !== 'string' || !email || !password) {
     res.status(400).json({ success: false, message: 'email and password are required' });
     return;
   }
 
   try {
     const { user, token } = await loginUser(email, password);
-    res.cookie('token', token, COOKIE_OPTIONS);
-    res.status(200).json({ success: true, data: { user, token } });
+    res.cookie(AUTH_COOKIE_NAME, token, AUTH_COOKIE_OPTIONS);
+    res.status(200).json({ success: true, data: { user } });
   } catch (err) {
     sendError(res, err, 'auth/login', 'Login failed. Please try again.');
   }
 }
 
-export function logout(_req: Request, res: Response): void {
-  res.clearCookie('token');
+export async function logout(req: Request, res: Response): Promise<void> {
+  const token: unknown = req.cookies?.[AUTH_COOKIE_NAME];
+  if (typeof token === 'string' && token) {
+    try {
+      const { userId, tv } = verifyAuthToken(token);
+      await revokeUserTokens(userId, tv);
+    } catch {
+      // expired/invalid token: nothing to revoke, still clear the cookie
+    }
+  }
+  res.clearCookie(AUTH_COOKIE_NAME, AUTH_COOKIE_CLEAR_OPTIONS);
   res.status(200).json({ success: true, message: 'Logged out successfully' });
 }
 

@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Eye, EyeOff, ArrowRight, Shield } from "lucide-react";
-import { clearStoredToken, getStoredToken, login, logout, me } from "@/api/auth";
+import { clearSessionHint, hasSessionHint, login, logout, me } from "@/api/auth";
 import { acceptInvite, emailsMatch, validateInvite } from "@/api/invite";
 
 function LoginPageContent() {
@@ -43,8 +43,7 @@ function LoginPageContent() {
   }, [inviteToken]);
 
   useEffect(() => {
-    const token = getStoredToken();
-    if (!token) return;
+    if (!hasSessionHint()) return;
 
     const handleExistingSession = async () => {
       try {
@@ -55,7 +54,7 @@ function LoginPageContent() {
             try {
               await logout();
             } catch {
-              clearStoredToken();
+              clearSessionHint();
             }
             setEmail(invitation.email || "");
             return;
@@ -65,7 +64,7 @@ function LoginPageContent() {
 
         router.push("/dashboard");
       } catch {
-        clearStoredToken();
+        clearSessionHint();
       }
     };
 

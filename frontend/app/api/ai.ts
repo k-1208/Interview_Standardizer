@@ -1,13 +1,6 @@
 const BACKEND_BASE_URL =
   process.env.NEXT_PUBLIC_BACKEND_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
 
-const AUTH_TOKEN_KEY = "auth_token";
-
-const getStoredToken = () => {
-  if (typeof window === "undefined") return null;
-  return window.localStorage.getItem(AUTH_TOKEN_KEY);
-};
-
 interface ApiResponse<T> {
   success: boolean;
   message?: string;
@@ -47,14 +40,13 @@ export interface GenerateQuestionsResponse {
 }
 
 export const generateInterviewQuestions = async (input: GenerateQuestionsInput) => {
-  const token = getStoredToken();
   const response = await fetch(`${BACKEND_BASE_URL}/api/ai/questions/generate`, {
     method: "POST",
     credentials: "include",
     headers: {
       "Content-Type": "application/json",
       "ngrok-skip-browser-warning": "true",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      "X-Requested-With": "XMLHttpRequest",
     },
     body: JSON.stringify(input),
   });
@@ -85,14 +77,13 @@ export interface SendBotResponse {
 }
 
 export const sendInterviewBot = async (input: SendBotInput) => {
-  const token = getStoredToken();
   const response = await fetch(`${BACKEND_BASE_URL}/api/ai/bot/join`, {
     method: "POST",
     credentials: "include",
     headers: {
       "Content-Type": "application/json",
       "ngrok-skip-browser-warning": "true",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      "X-Requested-With": "XMLHttpRequest",
     },
     body: JSON.stringify(input),
   });

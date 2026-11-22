@@ -3,7 +3,9 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { acceptInvite, emailsMatch, validateInvite } from "@/api/invite";
-import { clearStoredToken, getStoredToken, logout, me, register } from "@/api/auth";
+import { clearSessionHint, hasSessionHint, logout, me, register } from "@/api/auth";
+import { PasswordRequirements } from "@/components/ui/password-requirements";
+import { isPasswordValid, PASSWORD_MAX_LENGTH, PASSWORD_POLICY_ERROR } from "@/lib/passwordPolicy";
 
 interface InviteDetails {
   email: string;
@@ -48,7 +50,7 @@ export default function InviteTokenPage() {
         if (!isMounted) return;
         setInvite(data);
 
-        if (getStoredToken()) {
+        if (hasSessionHint()) {
           try {
             const user = await me();
             if (!isMounted) return;
@@ -62,11 +64,11 @@ export default function InviteTokenPage() {
             try {
               await logout();
             } catch {
-              clearStoredToken();
+              clearSessionHint();
             }
             if (isMounted) setCurrentEmail(null);
           } catch {
-            clearStoredToken();
+            clearSessionHint();
             if (isMounted) setCurrentEmail(null);
           }
         }
@@ -103,7 +105,7 @@ export default function InviteTokenPage() {
         try {
           await logout();
         } catch {
-          clearStoredToken();
+          clearSessionHint();
         }
         setCurrentEmail(null);
         setErrorMessage("");
@@ -119,8 +121,8 @@ export default function InviteTokenPage() {
     event.preventDefault();
     if (!token || !invite) return;
 
-    if (password.length < 8) {
-      setErrorMessage("Password must be at least 8 characters.");
+    if (!isPasswordValid(password)) {
+      setErrorMessage(PASSWORD_POLICY_ERROR);
       return;
     }
 
@@ -213,11 +215,17 @@ export default function InviteTokenPage() {
                     type="password"
                     required
                     minLength={8}
+                    maxLength={PASSWORD_MAX_LENGTH}
+                    autoComplete="new-password"
+                    aria-describedby="invite-password-requirements"
                     value={password}
                     onChange={(event) => setPassword(event.target.value)}
                     className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-hidden focus:ring-1 focus:ring-primary"
                     placeholder="Create a password"
                   />
+                  <div id="invite-password-requirements">
+                    <PasswordRequirements password={password} className="text-muted-foreground pt-2" />
+                  </div>
                 </div>
                 <div>
                   <label className="text-xs font-medium text-foreground block mb-1">Confirm password</label>
@@ -225,6 +233,8 @@ export default function InviteTokenPage() {
                     type="password"
                     required
                     minLength={8}
+                    maxLength={PASSWORD_MAX_LENGTH}
+                    autoComplete="new-password"
                     value={confirmPassword}
                     onChange={(event) => setConfirmPassword(event.target.value)}
                     className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-hidden focus:ring-1 focus:ring-primary"

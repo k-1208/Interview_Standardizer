@@ -12,6 +12,7 @@ import workspaceRoutes from "./routes/workspace.routes.js";
 import type { NextFunction, Request, Response } from "express";
 import { HttpError, sendError } from "./utils/httpError.js";
 import { checkReadiness } from "./utils/readiness.js";
+import { requireCsrfHeader } from "./middleware/csrf.middleware.js";
 
 dotenv.config();
 
@@ -34,7 +35,7 @@ const corsOptions: cors.CorsOptions = {
   },
   credentials: true,
   methods: ["GET", "HEAD", "PUT", "PATCH", "POST", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization", "ngrok-skip-browser-warning"],
+  allowedHeaders: ["Content-Type", "X-Requested-With", "ngrok-skip-browser-warning"],
 };
 
 app.use((req, res, next) => {
@@ -43,7 +44,7 @@ app.use((req, res, next) => {
     res.setHeader("Access-Control-Allow-Origin", origin);
   }
   res.setHeader("Access-Control-Allow-Methods", "GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, ngrok-skip-browser-warning");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, X-Requested-With, ngrok-skip-browser-warning");
   res.setHeader("Access-Control-Allow-Credentials", "true");
   if (req.method === "OPTIONS") {
     res.status(204).end();
@@ -57,6 +58,7 @@ app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
+app.use(requireCsrfHeader);
 
 app.get("/health", (req, res) => {
   res.status(200).json({

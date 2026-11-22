@@ -1,22 +1,39 @@
 const BACKEND_BASE_URL =
 	process.env.NEXT_PUBLIC_BACKEND_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
 
-const AUTH_TOKEN_KEY = 'auth_token';
+// The auth token lives only in an httpOnly cookie set by the API, so page scripts
+// (and any injected script) can never read it. We only keep a non-secret hint that a
+// session probably exists, to decide whether calling /api/auth/me is worthwhile.
+const SESSION_HINT_KEY = 'has_session';
+const LEGACY_TOKEN_KEY = 'auth_token';
 
-export const getStoredToken = () => {
-	if (typeof window === 'undefined') return null;
-	return window.localStorage.getItem(AUTH_TOKEN_KEY);
-};
-
-export const setStoredToken = (token: string) => {
+const safeStorage = (fn: (storage: Storage) => void) => {
 	if (typeof window === 'undefined') return;
-	window.localStorage.setItem(AUTH_TOKEN_KEY, token);
+	try {
+		fn(window.localStorage);
+	} catch {
+		// storage unavailable (private mode etc.) — the cookie still works
+	}
 };
 
-export const clearStoredToken = () => {
-	if (typeof window === 'undefined') return;
-	window.localStorage.removeItem(AUTH_TOKEN_KEY);
+export const hasSessionHint = () => {
+	if (typeof window === 'undefined') return false;
+	try {
+		// Purge tokens stored by older versions of the app.
+		window.localStorage.removeItem(LEGACY_TOKEN_KEY);
+		return window.localStorage.getItem(SESSION_HINT_KEY) === '1';
+	} catch {
+		return true;
+	}
 };
+
+export const setSessionHint = () => safeStorage((storage) => storage.setItem(SESSION_HINT_KEY, '1'));
+
+export const clearSessionHint = () =>
+	safeStorage((storage) => {
+		storage.removeItem(SESSION_HINT_KEY);
+		storage.removeItem(LEGACY_TOKEN_KEY);
+	});
 
 export interface AuthUser {
 	id: number;
@@ -58,7 +75,6 @@ interface RequestOptions extends RequestInit {
 
 interface AuthPayload {
 	user: AuthUser;
-	token: string;
 }
 
 export interface RegisterInput {
@@ -75,13 +91,12 @@ export interface LoginInput {
 }
 
 const request = async <T>(path: string, init?: RequestOptions): Promise<T> => {
-	const token = getStoredToken();
 	const response = await fetch(`${BACKEND_BASE_URL}${path}`, {
 		credentials: 'include',
 		headers: {
 			'Content-Type': 'application/json',
 			'ngrok-skip-browser-warning': 'true',
-			...(token ? { Authorization: `Bearer ${token}` } : {}),
+			'X-Requested-With': 'XMLHttpRequest',
 			...(init?.headers || {}),
 		},
 		...init,
@@ -107,7 +122,7 @@ export const register = async (input: RegisterInput) => {
 		method: 'POST',
 		body: JSON.stringify(input),
 	});
-	setStoredToken(data.token);
+	setSessionHint();
 	return data;
 };
 
@@ -116,7 +131,7 @@ export const login = async (input: LoginInput) => {
 		method: 'POST',
 		body: JSON.stringify(input),
 	});
-	setStoredToken(data.token);
+	setSessionHint();
 	return data;
 };
 
@@ -127,7 +142,7 @@ export const logout = async () => {
 			requireData: false,
 		});
 	} finally {
-		clearStoredToken();
+		clearSessionHint();
 	}
 };
 
