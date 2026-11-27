@@ -1,9 +1,17 @@
 import dotenv from 'dotenv';
 import http from 'http';
 import { installProcessHandlers } from './utils/processHandlers.js';
+import { assertStartupSettings } from './config/startupChecks.js';
 
 dotenv.config();
 installProcessHandlers('api');
+
+try {
+    assertStartupSettings();
+} catch (error) {
+    console.error((error as Error).message);
+    process.exit(1);
+}
 
 try {
     console.log('Importing app..');

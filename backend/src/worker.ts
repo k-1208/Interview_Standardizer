@@ -1,10 +1,19 @@
 import dotenv from 'dotenv';
 import { installProcessHandlers } from './utils/processHandlers.js';
-import { startPdfWorker, stopPdfWorker } from './service/queue/pdf.worker.js';
-import { startEmailWorker, stopEmailWorker } from './service/queue/email.worker.js';
+import { assertStartupSettings } from './config/startupChecks.js';
 
 dotenv.config();
 installProcessHandlers('worker');
+
+try {
+  assertStartupSettings();
+} catch (error) {
+  console.error((error as Error).message);
+  process.exit(1);
+}
+
+const { startPdfWorker, stopPdfWorker } = await import('./service/queue/pdf.worker.js');
+const { startEmailWorker, stopEmailWorker } = await import('./service/queue/email.worker.js');
 
 startPdfWorker();
 startEmailWorker();

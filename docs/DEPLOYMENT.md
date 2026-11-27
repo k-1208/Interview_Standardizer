@@ -117,6 +117,7 @@ Notes:
 - `NEXT_PUBLIC_BACKEND_URL` is baked into the frontend **at build time**. If you change it, rebuild (`up -d --build frontend`).
 - `FRONTEND_URL` is added to the API's CORS allow-list and used for links in invitation emails.
 - The API refuses to start if `JWT_SECRET` is missing, shorter than 32 characters, or still the example placeholder.
+- The API and worker refuse to start if `NODE_ENV` is anything other than `development`, `test` or `production` (a typo like `prod` would otherwise silently disable production-only protections), or if `NODE_ENV=production` and `FRONTEND_URL` is missing or uses plain `http://` on a non-localhost host.
 - The containers run with `NODE_ENV=production`, so the login cookie is `Secure` — **the app must be served over HTTPS** (or on `localhost`).
 - Frontend and API on completely different domains (e.g. Vercel + your server)? Use `COOKIE_SAME_SITE=none` (HTTPS required).
 - External database (Supabase, RDS): set `DATABASE_URL` and `DIRECT_URL` here; the bundled Postgres is then unused.
@@ -177,6 +178,15 @@ Open `https://app.example.com`.
 (Nginx works too — proxy the same two hosts and set `X-Forwarded-Proto`/`X-Forwarded-For`; keep `TRUST_PROXY=true`.)
 
 ## 8. First login and setup
+
+**Plaksha default organisation (optional).** Instead of registering, seed the `Plaksha` workspace with its owner (`super_admin`) and first admin:
+
+```bash
+docker compose --env-file .env.docker exec backend node dist/src/scripts/seedPlaksha.js
+# outside Docker: cd backend && npm run seed:plaksha
+```
+
+It is idempotent and only adds missing records; existing passwords are kept unless you pass `--reset-passwords`. Override the initial passwords with `SEED_SUPER_ADMIN_PASSWORD` / `SEED_ADMIN_PASSWORD`, and have both users change them after first login.
 
 1. Go to `https://app.example.com/register` and create the founder account. This creates the organization's workspace with you as `super_admin`.
    Passwords need 8+ characters with upper case, lower case, a number and a symbol.
