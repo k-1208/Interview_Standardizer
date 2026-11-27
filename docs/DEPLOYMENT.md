@@ -182,7 +182,8 @@ Open `https://app.example.com`.
 **Plaksha default organisation (optional).** Instead of registering, seed the `Plaksha` workspace with its owner (`super_admin`) and first admin:
 
 ```bash
-docker compose --env-file .env.docker exec backend node dist/src/scripts/seedPlaksha.js
+./run.sh seed
+# or: docker compose --env-file .env.docker exec backend node dist/src/scripts/seedPlaksha.js
 # outside Docker: cd backend && npm run seed:plaksha
 ```
 
@@ -242,6 +243,10 @@ Schedule the backup with cron and copy the files off the server (e.g. to S3).
 Also keep a safe copy of `.env.docker` — losing `SETTINGS_ENCRYPTION_KEY` makes saved workspace API keys unreadable.
 
 ## Local run (no domain)
+
+Easiest: `./run.sh` from the repository root does all of the steps below plus the Plaksha seed, and fails with a clear message if a required key (AWS) is missing.
+
+Manually:
 
 ```bash
 cp .env.docker.example .env.docker

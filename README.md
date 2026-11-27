@@ -32,6 +32,19 @@ Or just Docker — see [Docker (full stack)](#docker-full-stack).
 
 `docker-compose.yml` runs Postgres, Redis, a one-shot migration job, the API, the queue workers and the frontend.
 
+**Quick start — one command:**
+
+```bash
+./run.sh            # creates/fills .env.docker, builds, starts, migrates, seeds Plaksha
+./run.sh status     # container status      ./run.sh logs [service]
+./run.sh seed       # re-run the Plaksha seed (add --reset-passwords to force passwords)
+./run.sh down       # stop (data kept)
+```
+
+`run.sh` generates `JWT_SECRET` and `SETTINGS_ENCRYPTION_KEY` if missing, copies empty Gemini/Recall/AWS/SMTP keys from `backend/.env` when present (never the database URL), waits for the API and frontend to be healthy, and seeds the `Plaksha` workspace (owner `umair.rashid@plaksha.edu.in`, admin `kunal.gupta.ug23@plaksha.edu.in`). It never overwrites values already in `.env.docker`. Then open http://localhost:3000.
+
+Manual equivalent:
+
 ```bash
 cp .env.docker.example .env.docker   # fill in JWT_SECRET, AWS/S3, Gemini, Recall, SMTP
 docker compose --env-file .env.docker up -d --build
