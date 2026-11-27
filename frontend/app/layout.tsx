@@ -18,6 +18,13 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "InterviewIQ - AI-Powered Interview Platform",
   description: "Standardize your interviews. Hire with confidence.",
+  // Private app: keep every page out of search engines (also sent as X-Robots-Tag).
+  robots: {
+    index: false,
+    follow: false,
+    nocache: true,
+    googleBot: { index: false, follow: false, noimageindex: true },
+  },
 };
 
 const themeInitScript = `(function(){try{var stored=localStorage.getItem("theme");var dark=stored==="dark"||(stored!=="light"&&window.matchMedia("(prefers-color-scheme: dark)").matches);document.documentElement.classList.toggle("dark",dark);document.documentElement.style.colorScheme=dark?"dark":"light";}catch(e){}})();`;

@@ -31,6 +31,15 @@ app.use(
     crossOriginResourcePolicy: { policy: "cross-origin" },
   })
 );
+// Private API: keep every response out of search engines.
+app.use((_req, res, next) => {
+  res.setHeader("X-Robots-Tag", "noindex, nofollow, noarchive, nosnippet");
+  next();
+});
+app.get("/robots.txt", (_req, res) => {
+  res.type("text/plain").send("User-agent: *\nDisallow: /\n");
+});
+
 const extraFrontendUrl = process.env.FRONTEND_URL?.replace(/\/$/, "");
 const allowedOrigins = [
   "https://interview-standardizer.vercel.app",
